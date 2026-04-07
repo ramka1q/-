@@ -1,1739 +1,602 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Пилипюк и Компания: Квест за Легендарной Шавермой</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🌯 Пилипюк: Месник Шаурми</title>
 <style>
-  :root {
-    --bg: #0d0d0d;
-    --bg2: #1a1a2e;
-    --bg3: #16213e;
-    --accent: #e94560;
-    --accent2: #0f3460;
-    --gold: #f5a623;
-    --green: #2ecc71;
-    --red: #e74c3c;
-    --blue: #3498db;
-    --purple: #9b59b6;
-    --text: #e0e0e0;
-    --text-dim: #888;
-    --border: #2a2a4a;
-    --card: #1e1e3a;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ======= SPLASH SCREEN ======= */
-  #splash {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 20px;
-    background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #0d0d0d 100%);
-    text-align: center;
-    animation: fadeIn 1s ease;
-  }
-
-  .splash-logo {
-    font-size: 80px;
-    margin-bottom: 10px;
-    animation: bounce 2s infinite;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
-  }
-
-  .splash-title {
-    font-size: clamp(22px, 6vw, 36px);
-    font-weight: 900;
-    color: var(--gold);
-    text-shadow: 0 0 20px rgba(245,166,35,0.5);
-    line-height: 1.2;
-    margin-bottom: 10px;
-  }
-
-  .splash-subtitle {
-    font-size: clamp(14px, 3.5vw, 18px);
-    color: var(--accent);
-    margin-bottom: 30px;
-    font-style: italic;
-  }
-
-  .splash-desc {
-    max-width: 380px;
-    font-size: 14px;
-    color: var(--text-dim);
-    line-height: 1.6;
-    margin-bottom: 40px;
-  }
-
-  .chars-preview {
-    display: flex;
-    gap: 10px;
-    font-size: 32px;
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .chars-preview span {
-    animation: pulse 2s infinite;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .chars-preview small {
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  .chars-preview span:nth-child(1) { animation-delay: 0s; }
-  .chars-preview span:nth-child(2) { animation-delay: 0.3s; }
-  .chars-preview span:nth-child(3) { animation-delay: 0.6s; }
-  .chars-preview span:nth-child(4) { animation-delay: 0.9s; }
-  .chars-preview span:nth-child(5) { animation-delay: 1.2s; }
-  .chars-preview span:nth-child(6) { animation-delay: 1.5s; }
-
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-  }
-
-  /* ======= BUTTONS ======= */
-  .btn {
-    display: block;
-    width: 100%;
-    max-width: 340px;
-    padding: 16px 24px;
-    margin: 8px auto;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-    line-height: 1.4;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn:active { transform: scale(0.97); }
-
-  .btn::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 0; height: 0;
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.4s, height 0.4s;
-  }
-
-  .btn:active::after { width: 200px; height: 200px; }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #c0392b);
-    color: white;
-    font-size: 20px;
-    text-align: center;
-    padding: 18px 32px;
-    box-shadow: 0 4px 20px rgba(233,69,96,0.4);
-  }
-
-  .btn-choice {
-    background: var(--card);
-    color: var(--text);
-    border: 2px solid var(--border);
-    font-size: 15px;
-  }
-
-  .btn-choice:hover, .btn-choice:focus {
-    border-color: var(--accent);
-    background: #252545;
-    box-shadow: 0 0 12px rgba(233,69,96,0.2);
-  }
-
-  .btn-choice .choice-label {
-    font-size: 11px;
-    color: var(--text-dim);
-    display: block;
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .btn-good { border-left: 4px solid var(--green) !important; }
-  .btn-bad { border-left: 4px solid var(--red) !important; }
-  .btn-neutral { border-left: 4px solid var(--blue) !important; }
-  .btn-secret { border-left: 4px solid var(--purple) !important; }
-
-  /* ======= GAME SCREEN ======= */
-  #game {
-    display: none;
-    max-width: 480px;
-    margin: 0 auto;
-    min-height: 100vh;
-    flex-direction: column;
-  }
-
-  /* ======= STATS BAR ======= */
-  #stats-bar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg2);
-    border-bottom: 2px solid var(--border);
-    padding: 10px 14px;
-  }
-
-  .stats-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-  }
-
-  .stat-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    flex: 1;
-    min-width: 80px;
-  }
-
-  .stat-label {
-    color: var(--text-dim);
-    font-size: 10px;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .stat-bar-wrap {
-    flex: 1;
-    height: 8px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 4px;
-    overflow: hidden;
-    min-width: 40px;
-  }
-
-  .stat-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.5s ease;
-  }
-
-  .stat-bar-hp { background: linear-gradient(90deg, var(--red), #ff6b6b); }
-  .stat-bar-karma { background: linear-gradient(90deg, var(--blue), var(--purple)); }
-  .stat-bar-friend { background: linear-gradient(90deg, var(--green), #27ae60); }
-
-  .stat-value {
-    font-size: 11px;
-    font-weight: 700;
-    min-width: 28px;
-    text-align: right;
-  }
-
-  .inventory-bar {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    min-height: 22px;
-  }
-
-  .inv-item {
-    background: rgba(245,166,35,0.15);
-    border: 1px solid var(--gold);
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 12px;
-    color: var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .chapter-label {
-    font-size: 10px;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 2px;
-  }
-
-  /* ======= SCENE AREA ======= */
-  #scene-area {
-    flex: 1;
-    padding: 16px 14px;
-    overflow-y: auto;
-  }
-
-  .scene-header {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .scene-emoji {
-    font-size: 56px;
-    display: block;
-    margin-bottom: 8px;
-    animation: sceneEnter 0.5s ease;
-  }
-
-  .scene-title {
-    font-size: clamp(18px, 5vw, 24px);
-    font-weight: 800;
-    color: var(--gold);
-    margin-bottom: 4px;
-  }
-
-  .scene-location {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
-
-  @keyframes sceneEnter {
-    from { transform: scale(0.5) rotate(-20deg); opacity: 0; }
-    to { transform: scale(1) rotate(0deg); opacity: 1; }
-  }
-
-  /* ======= DIALOGUE ======= */
-  .dialogue-box {
-    margin-bottom: 16px;
-    animation: slideUp 0.4s ease;
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  .dialogue-speaker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-
-  .speaker-avatar {
-    font-size: 24px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--card);
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .speaker-name {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--gold);
-  }
-
-  .speaker-role {
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  .dialogue-text {
-    background: var(--card);
-    border-radius: 0 12px 12px 12px;
-    padding: 12px 14px;
-    font-size: 15px;
-    line-height: 1.6;
-    border-left: 3px solid var(--border);
-    position: relative;
-    margin-left: 12px;
-  }
-
-  .dialogue-text.narrator {
-    background: transparent;
-    border: none;
-    border-left: 3px solid var(--accent2);
-    color: var(--text-dim);
-    font-style: italic;
-    font-size: 14px;
-    margin-left: 0;
-    border-radius: 0;
-  }
-
-  .char-pilipyuk .dialogue-text { border-left-color: #e74c3c; }
-  .char-dima .dialogue-text { border-left-color: #3498db; }
-  .char-nikita .dialogue-text { border-left-color: #e67e22; }
-  .char-egor .dialogue-text { border-left-color: #9b59b6; }
-  .char-danya .dialogue-text { border-left-color: #2ecc71; }
-  .char-sasha .dialogue-text { border-left-color: #1abc9c; }
-  .char-narrator .dialogue-text { border-left-color: #f39c12; }
-
-  /* ======= CHOICES ======= */
-  #choices-area {
-    padding: 0 14px 20px;
-  }
-
-  .choices-title {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-
-  /* ======= QTE ======= */
-  #qte-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.9);
-    z-index: 200;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-  }
-
-  #qte-overlay.active { display: flex; }
-
-  .qte-title {
-    font-size: 24px;
-    font-weight: 900;
-    color: var(--gold);
-    margin-bottom: 10px;
-  }
-
-  .qte-desc {
-    font-size: 16px;
-    color: var(--text);
-    margin-bottom: 30px;
-  }
-
-  .qte-timer-wrap {
-    width: 200px;
-    height: 12px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 6px;
-    overflow: hidden;
-    margin-bottom: 30px;
-  }
-
-  .qte-timer-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
-    border-radius: 6px;
-    transition: width 0.05s linear;
-  }
-
-  .qte-big-btn {
-    font-size: 72px;
-    background: none;
-    border: 4px solid var(--gold);
-    border-radius: 24px;
-    padding: 20px 40px;
-    cursor: pointer;
-    transition: all 0.1s;
-    animation: qtePulse 0.5s infinite;
-  }
-
-  .qte-big-btn:active { transform: scale(0.9); background: rgba(245,166,35,0.2); }
-
-  @keyframes qtePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.5); }
-    50% { box-shadow: 0 0 0 20px rgba(245,166,35,0); }
-  }
-
-  .qte-result {
-    font-size: 32px;
-    font-weight: 900;
-    animation: fadeIn 0.3s ease;
-  }
-
-  /* ======= ENDING SCREEN ======= */
-  #ending {
-    display: none;
-    min-height: 100vh;
-    padding: 30px 20px;
-    text-align: center;
-    background: linear-gradient(135deg, #0d0d0d, #1a1a2e);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .ending-emoji { font-size: 80px; margin-bottom: 16px; animation: bounce 2s infinite; }
-  .ending-title { font-size: clamp(24px, 7vw, 36px); font-weight: 900; color: var(--gold); margin-bottom: 8px; }
-  .ending-subtitle { font-size: 16px; color: var(--accent); margin-bottom: 24px; }
-
-  .ending-text {
-    max-width: 380px;
-    font-size: 15px;
-    line-height: 1.7;
-    color: var(--text);
-    margin-bottom: 30px;
-    text-align: left;
-  }
-
-  .ending-stats {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 16px;
-    width: 100%;
-    max-width: 380px;
-    margin-bottom: 30px;
-    text-align: left;
-  }
-
-  .ending-stats h3 {
-    color: var(--gold);
-    margin-bottom: 12px;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-  }
-
-  .ending-stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-  }
-
-  .ending-stat-row:last-child { border-bottom: none; }
-
-  /* ======= NOTIFICATION ======= */
-  #notification {
-    position: fixed;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 300;
-    background: var(--card);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 700;
-    max-width: 320px;
-    text-align: center;
-    display: none;
-    animation: slideDown 0.3s ease;
-  }
-
-  @keyframes slideDown {
-    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-    to { transform: translateX(-50%) translateY(0); opacity: 1; }
-  }
-
-  /* ======= UTILS ======= */
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .hidden { display: none !important; }
-
-  .typewriter { overflow: hidden; white-space: normal; }
-
-  .cursor {
-    display: inline-block;
-    width: 2px;
-    height: 1em;
-    background: var(--gold);
-    margin-left: 2px;
-    vertical-align: middle;
-    animation: blink 0.8s infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 16px 0;
-  }
-
-  .highlight { color: var(--gold); font-weight: 700; }
-  .text-red { color: var(--red); }
-  .text-green { color: var(--green); }
-  .text-blue { color: var(--blue); }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;overflow:hidden;user-select:none;-webkit-user-select:none}
+#wrap{position:relative;display:inline-block}
+canvas{display:block}
+#touch{position:absolute;bottom:0;left:0;right:0;height:110px;display:flex;justify-content:space-between;align-items:flex-end;padding:8px 12px;pointer-events:none}
+.tbtn{pointer-events:auto;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);border-radius:50%;color:#fff;font-size:18px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tleft,.tright{display:flex;gap:8px;align-items:flex-end}
+@media(pointer:fine){#touch{display:none}}
 </style>
 </head>
 <body>
-
-<!-- SPLASH -->
-<div id="splash">
-  <div class="splash-logo">🌯</div>
-  <div class="splash-title">Пилипюк и Компания</div>
-  <div class="splash-subtitle">⚔️ Квест за Легендарной Шавермой ⚔️</div>
-  <div class="chars-preview">
-    <span>🧔<small>Пилипюк</small></span>
-    <span>🤓<small>Дима</small></span>
-    <span>💪<small>Никита</small></span>
-    <span>😰<small>Егор</small></span>
-    <span>😂<small>Даня</small></span>
-    <span>🧘<small>Саша</small></span>
-  </div>
-  <div class="splash-desc">
-    Легендарная Шаверма похищена! Только шестеро друзей могут её вернуть.<br>
-    Абсурдное приключение с кучей шуток, мемов и неожиданных поворотов!
-  </div>
-  <button class="btn btn-primary" onclick="startGame()">🚀 Начать Квест!</button>
-</div>
-
-<!-- QTE OVERLAY -->
-<div id="qte-overlay">
-  <div class="qte-title" id="qte-title">⚡ БЫСТРОЕ ДЕЙСТВИЕ! ⚡</div>
-  <div class="qte-desc" id="qte-desc">Нажми кнопку!</div>
-  <div class="qte-timer-wrap">
-    <div class="qte-timer-bar" id="qte-timer-bar"></div>
-  </div>
-  <button class="qte-big-btn" id="qte-btn" onclick="qtePressed()">🌯</button>
-  <div class="qte-result" id="qte-result"></div>
-</div>
-
-<!-- NOTIFICATION -->
-<div id="notification"></div>
-
-<!-- GAME -->
-<div id="game">
-  <!-- Stats Bar -->
-  <div id="stats-bar">
-    <div class="chapter-label" id="chapter-label">Глава 1</div>
-    <div class="stats-row">
-      <div class="stat-item">
-        <span class="stat-label">❤️ HP</span>
-        <div class="stat-bar-wrap">
-          <div class="stat-bar-fill stat-bar-hp" id="bar-hp" style="width:100%"></div>
-        </div>
-        <span class="stat-value" id="val-hp">100</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">✨ Карма</span>
-        <div class="stat-bar-wrap">
-          <div class="stat-bar-fill stat-bar-karma" id="bar-karma" style="width:50%"></div>
-        </div>
-        <span class="stat-value" id="val-karma">50</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">🤝 Друж.</span>
-        <div class="stat-bar-wrap">
-          <div class="stat-bar-fill stat-bar-friend" id="bar-friend" style="width:50%"></div>
-        </div>
-        <span class="stat-value" id="val-friend">50</span>
-      </div>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="touch">
+    <div class="tleft">
+      <div class="tbtn" id="btnL" style="width:58px;height:58px">&#9664;</div>
+      <div class="tbtn" id="btnR" style="width:58px;height:58px">&#9654;</div>
     </div>
-    <div class="inventory-bar" id="inventory-bar">
-      <span style="font-size:11px;color:var(--text-dim)">🎒 Инвентарь пуст</span>
+    <div class="tright">
+      <div class="tbtn" id="btnAtk" style="width:52px;height:52px">&#128074;</div>
+      <div class="tbtn" id="btnJump" style="width:62px;height:62px">&#128316;</div>
     </div>
   </div>
-
-  <!-- Scene Area -->
-  <div id="scene-area"></div>
-
-  <!-- Choices -->
-  <div id="choices-area"></div>
 </div>
-
-<!-- ENDING -->
-<div id="ending">
-  <div class="ending-emoji" id="ending-emoji">🏆</div>
-  <div class="ending-title" id="ending-title">Заголовок</div>
-  <div class="ending-subtitle" id="ending-subtitle">Подзаголовок</div>
-  <div class="ending-text" id="ending-text"></div>
-  <div class="ending-stats" id="ending-stats"></div>
-  <button class="btn btn-primary" onclick="restartGame()" style="max-width:320px">🔄 Играть снова!</button>
-</div>
-
 <script>
-// ============================================================
+
+'use strict';
+const GW=800,GH=450;
+const cv=document.getElementById('c');
+const cx=cv.getContext('2d');
+cv.width=GW;cv.height=GH;
+function resize(){
+  const s=Math.min(window.innerWidth/GW,window.innerHeight/(GH+110));
+  cv.style.width=GW*s+'px';cv.style.height=GH*s+'px';
+  document.getElementById('wrap').style.width=GW*s+'px';
+}
+resize();window.addEventListener('resize',resize);
+
+// INPUT
+const K={},KP={};
+window.addEventListener('keydown',e=>{if(!K[e.code])KP[e.code]=true;K[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();});
+window.addEventListener('keyup',e=>K[e.code]=false);
+function bndTouch(id,code){
+  const el=document.getElementById(id);if(!el)return;
+  const dn=e=>{e.preventDefault();if(!K[code])KP[code]=true;K[code]=true;};
+  const up=e=>{e.preventDefault();K[code]=false;};
+  el.addEventListener('touchstart',dn,{passive:false});el.addEventListener('touchend',up,{passive:false});
+  el.addEventListener('mousedown',dn);el.addEventListener('mouseup',up);
+}
+bndTouch('btnL','ArrowLeft');bndTouch('btnR','ArrowRight');bndTouch('btnJump','Space');bndTouch('btnAtk','KeyZ');
+function clearKP(){for(const k in KP)delete KP[k];}
+
+// UTILS
+const rng=(a,b)=>Math.random()*(b-a)+a;
+const ri=(a,b)=>Math.floor(rng(a,b+1));
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function ovlp(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function rrect(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.lineTo(x+w-r,y);cx.arcTo(x+w,y,x+w,y+r,r);cx.lineTo(x+w,y+h-r);cx.arcTo(x+w,y+h,x+w-r,y+h,r);cx.lineTo(x+r,y+h);cx.arcTo(x,y+h,x,y+h-r,r);cx.lineTo(x,y+r);cx.arcTo(x,y,x+r,y,r);cx.closePath();}
+function wrapTxt(text,x,y,maxW,lh){const words=text.split(' ');let line='';for(const w of words){const t=line+w+' ';if(cx.measureText(t).width>maxW&&line){cx.fillText(line.trim(),x,y);line=w+' ';y+=lh;}else line=t;}cx.fillText(line.trim(),x,y);}
+
+// PARTICLES
+let parts=[];
+function spawnP(x,y,col,n,sp){n=n||8;sp=sp||3;for(let i=0;i<n;i++)parts.push({x,y,vx:rng(-sp,sp),vy:rng(-4,-1),life:ri(28,50),maxL:50,col,sz:rng(2,6)});}
+function tickParts(){parts=parts.filter(p=>p.life>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life--;}}
+function drawParts(ox,oy){for(const p of parts){cx.globalAlpha=p.life/p.maxL;cx.fillStyle=p.col;cx.fillRect(p.x-ox,p.y-oy,p.sz,p.sz);}cx.globalAlpha=1;}
+
+// DIALOG
+let dlg=null,dlgQ=[];
+function showDlg(spk,txt,dur){dur=dur||220;dlg={spk,txt,t:dur,maxT:dur};}
+function qDlg(spk,txt,dur){dur=dur||220;dlgQ.push({spk,txt,dur});}
+function tickDlg(){if(!dlg)return;dlg.t--;if(dlg.t<=0){dlg=null;if(dlgQ.length){const n=dlgQ.shift();dlg={spk:n.spk,txt:n.txt,t:n.dur,maxT:n.dur};}}}
+function drawDlg(){
+  if(!dlg)return;
+  const bx=10,by=GH-100,bw=GW-20,bh=88;
+  cx.fillStyle='rgba(4,4,18,0.93)';rrect(bx,by,bw,bh,8);cx.fill();
+  cx.strokeStyle='#f5a623';cx.lineWidth=2;rrect(bx,by,bw,bh,8);cx.stroke();
+  cx.fillStyle='#f5a623';cx.font='bold 13px "Segoe UI",sans-serif';cx.textAlign='left';
+  cx.fillText('\u25B6 '+dlg.spk,bx+12,by+18);
+  cx.fillStyle='#eee';cx.font='13px "Segoe UI",sans-serif';
+  wrapTxt(dlg.txt,bx+12,by+36,bw-24,18);
+  cx.fillStyle='rgba(245,166,35,0.35)';cx.fillRect(bx+4,by+bh-8,(bw-8)*dlg.t/dlg.maxT|0,5);
+}
+
 // GAME STATE
-// ============================================================
-let G = {};
+let STATE='menu',lvlIdx=0,totalScore=0,totalCoins=0,frameN=0,deathMsg='';
+const DEATH_UK=[
+  '\uD83D\uDE31 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F \u0434\u0456\u0437\u043D\u0430\u043B\u0430\u0441\u044C \u043F\u0440\u043E \u0442\u0432\u043E\u0457 \u043E\u0446\u0456\u043D\u043A\u0438!',
+  '\uD83C\uDF72 \u0423\u043F\u0430\u0432 \u0443 \u0431\u043E\u0440\u0449... \u0421\u043C\u0430\u0447\u043D\u043E, \u0430\u043B\u0435 \u0431\u043E\u043B\u044F\u0447\u0435',
+  '\uD83D\uDE22 \u0428\u0430\u0443\u0440\u043C\u0430 \u0432\u0436\u0435 \u0445\u043E\u043B\u043E\u0434\u043D\u0430...',
+  '\uD83D\uDCD2 \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u0437\u0430\u043F\u0438\u0441\u0430\u0432: "\u041F\u0420\u041E\u0412\u0410\u041B\u0418\u0412\u0421\u042F"',
+  '\uD83E\uDD26 \u041C\u0430\u043C\u0430 \u043A\u0430\u0437\u0430\u043B\u0430: "\u041D\u0435 \u0445\u043E\u0434\u0438 \u0437\u0430 \u0448\u0430\u0443\u0440\u043C\u043E\u044E!"',
+  '\uD83D\uDC80 \u0417\u0430\u0433\u0438\u043D\u0443\u0432 \u044F\u043A \u0433\u0435\u0440\u043E\u0439. \u0410\u0431\u043E \u044F\u043A \u0456\u0434\u0456\u043E\u0442.',
+  '\uD83C\uDF2F \u041D\u0430\u0432\u0456\u0442\u044C \u0448\u0430\u0443\u0440\u043C\u0430 \u0442\u0435\u0431\u0435 \u043D\u0435 \u0432\u0440\u044F\u0442\u0443\u0432\u0430\u043B\u0430',
+  '\uD83D\uDE04 \u041D\u0430\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0443 \u0457\u0436 \u0432\u0434\u043E\u043C\u0430!'
+];
 
-function resetState() {
-  G = {
-    hp: 100,
-    karma: 50,
-    friendship: 50,
-    inventory: [],
-    // Flags
-    stolen: false,
-    paid: false,
-    foughtGoose: false,
-    negotiatedGoose: false,
-    schoolSolved: false,
-    dimaHelpedSchool: false,
-    bribedDed: false,
-    // Boss fight
-    bossHp: 100,
-    bossRound: 0,
-    tactic: null,
-    // QTE results
-    qteWin: null,
-    // Choices log
-    choices: [],
-    // Current scene
-    scene: 'prologue',
-  };
+// PHYSICS
+const GRAV=0.55,JUMP=-11.5,SPD=3.8;
+const P={x:100,y:200,w:26,h:36,vx:0,vy:0,onGr:false,hp:3,maxHp:3,ifr:0,face:1,atk:false,atkT:0,jumps:0,dead:false};
+function resetP(x,y){P.x=x;P.y=y;P.vx=0;P.vy=0;P.onGr=false;P.ifr=0;P.atk=false;P.atkT=0;P.jumps=0;P.dead=false;}
+function tickP(plats){
+  if(P.dead)return;
+  if(K['ArrowLeft']||K['KeyA']){P.vx=-SPD;P.face=-1;}
+  else if(K['ArrowRight']||K['KeyD']){P.vx=SPD;P.face=1;}
+  else P.vx*=0.75;
+  if((KP['Space']||KP['ArrowUp']||KP['KeyW'])&&P.jumps<2){P.vy=JUMP+(P.jumps?1.8:0);P.jumps++;spawnP(P.x+P.w/2,P.y+P.h,'#88aaff',5);}
+  if(KP['KeyZ']||KP['ShiftLeft']){P.atk=true;P.atkT=16;}
+  if(P.atkT>0)P.atkT--;else P.atk=false;
+  P.vy=Math.min(P.vy+GRAV,15);
+  P.x+=P.vx;colX(P,plats);
+  P.y+=P.vy;P.onGr=false;colY(P,plats);
+  if(P.ifr>0)P.ifr--;
+}
+function colX(e,plats){for(const p of plats){if(!p.solid||!ovlp(e,p))continue;if(e.vx>0)e.x=p.x-e.w;else e.x=p.x+p.w;e.vx=0;}}
+function colY(e,plats){
+  for(const p of plats){
+    if(!p.solid||!ovlp(e,p))continue;
+    if(p.ow){if(e.vy<=0||e.y+e.h-e.vy>p.y+8)continue;}
+    if(e.vy>0){e.y=p.y-e.h;e.vy=0;e.onGr=true;if(e===P)P.jumps=0;}
+    else{e.y=p.y+p.h;e.vy=0;}
+  }
+}
+function drawP(ox,oy){
+  if(P.dead)return;
+  if(P.ifr>0&&Math.floor(P.ifr/4)%2)return;
+  const sx=P.x-ox,sy=P.y-oy;
+  cx.fillStyle='rgba(0,0,0,0.3)';cx.beginPath();cx.ellipse(sx+P.w/2,sy+P.h+2,12,4,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#3498db';cx.fillRect(sx,sy+14,P.w,P.h-14);
+  const lg=P.onGr?Math.sin(frameN*0.3)*3:0;
+  cx.fillStyle='#2980b9';cx.fillRect(sx+2,sy+P.h-8,8,8+lg);cx.fillRect(sx+P.w-10,sy+P.h-8,8,8-lg);
+  cx.fillStyle='#f0c080';cx.fillRect(sx+3,sy,20,22);
+  cx.font='18px serif';cx.textAlign='center';cx.fillText(P.atk?'\uD83D\uDE24':'\uD83D\uDE0E',sx+P.w/2,sy+17);
+  cx.fillStyle='#e74c3c';cx.fillRect(sx+2,sy+13,P.w-4,5);
+  if(P.atk&&P.atkT>8){
+    cx.fillStyle='rgba(255,220,0,0.45)';cx.fillRect(P.face>0?sx+P.w:sx-30,sy+6,30,P.h-12);
+    cx.font='16px serif';cx.fillText('\uD83D\uDC4A',P.face>0?sx+P.w+6:sx-14,sy+P.h/2+4);
+  }
 }
 
-// ============================================================
-// CHARACTERS
-// ============================================================
-const CHARS = {
-  narrator:  { emoji: '📜', name: 'Рассказчик',  role: 'Голос судьбы',     cls: 'char-narrator'  },
-  pilipyuk:  { emoji: '🧔', name: 'Пилипюк',    role: 'Лидер (почти)',    cls: 'char-pilipyuk'  },
-  dima:      { emoji: '🤓', name: 'Дима',        role: 'Умник-неудачник',  cls: 'char-dima'      },
-  nikita:    { emoji: '💪', name: 'Никита',      role: 'Качок',            cls: 'char-nikita'    },
-  egor:      { emoji: '😰', name: 'Егор',        role: 'Параноик',         cls: 'char-egor'      },
-  danya:     { emoji: '😂', name: 'Даня',        role: 'Мемлорд',          cls: 'char-danya'     },
-  sasha:     { emoji: '🧘', name: 'Саша',        role: 'Мудрец',           cls: 'char-sasha'     },
-  ded:       { emoji: '👴', name: 'Дед Архип',   role: 'Продавец',         cls: 'char-narrator'  },
-  goose:     { emoji: '🦢', name: 'Главный Гусь',role: 'Враг?',            cls: 'char-narrator'  },
-  shaverman: { emoji: '👹', name: 'Шаверман',    role: 'Повелитель Шаверм',cls: 'char-narrator'  },
-};
+// ENEMIES
+let ENMs=[],PROJs=[],PKUPs=[];
+function mkEnm(type,x,y,px1,px2){return {type,x,y,w:28,h:34,vx:1,vy:0,onGr:false,hp:type==='strong'?3:1,maxHp:type==='strong'?3:1,px1,px2,face:1,dead:false,ifr:0,shotT:0};}
+function tickENMs(plats){
+  for(const e of ENMs){
+    if(e.dead)continue;
+    e.vx=e.face*(e.type==='strong'?1.5:1.2);
+    if(e.x<=e.px1){e.face=1;e.x=e.px1;}if(e.x+e.w>=e.px2){e.face=-1;e.x=e.px2-e.w;}
+    if(e.type==='shooter'){e.shotT++;if(e.shotT%130===0){const dx=P.x-e.x;mkProj(e.x+e.w/2,e.y+e.h/2,Math.sign(dx)*3.5,0,true,1,'#e74c3c');}}
+    e.vy=Math.min(e.vy+GRAV,14);e.x+=e.vx;colX(e,plats);e.y+=e.vy;e.onGr=false;colY(e,plats);
+    if(e.ifr>0)e.ifr--;if(e.y>GH+100)e.dead=true;
+    if(P.ifr===0&&ovlp(e,P)){hurtP(1);P.vx=Math.sign(P.x-e.x)*5;P.vy=-5;}
+  }
+}
+function drawENMs(ox,oy){
+  for(const e of ENMs){
+    if(e.dead)continue;if(e.ifr>0&&Math.floor(e.ifr/3)%2)continue;
+    const sx=e.x-ox,sy=e.y-oy;
+    cx.fillStyle=e.type==='strong'?'#c0392b':e.type==='shooter'?'#8e44ad':'#e74c3c';cx.fillRect(sx,sy+12,e.w,e.h-12);
+    cx.fillStyle='#f0c080';cx.fillRect(sx+4,sy,20,20);
+    cx.font='15px serif';cx.textAlign='center';
+    cx.fillText(e.type==='strong'?'\uD83D\uDE20':e.type==='shooter'?'\uD83E\uDD21':'\uD83D\uDE24',sx+e.w/2,sy+15);
+    if(e.type==='strong'&&e.hp<e.maxHp){cx.fillStyle='#333';cx.fillRect(sx,sy-8,e.w,4);cx.fillStyle='#e74c3c';cx.fillRect(sx,sy-8,e.w*(e.hp/e.maxHp)|0,4);}
+  }
+}
 
-// ============================================================
-// SCENES DATA
-// ============================================================
-const SCENES = {
-
-  // ==================== PROLOGUE ====================
-  prologue: {
-    chapter: 'Пролог',
-    emoji: '🏠',
-    title: 'Подвал Пилипюка',
-    location: '📍 Подвал, 23:00',
-    dialogue: [
-      { char: 'narrator', text: 'Тёмный подвал. Запах дошираки и несбывшихся мечт. Шестеро друзей собрались вокруг стола, освещённого единственной лампочкой на 40 ватт.' },
-      { char: 'pilipyuk', text: 'Пацаны, я придумал гениальный план... ладно, забудьте. Но короче — вы слышали? Легендарная Шаверма пропала из города! 😤' },
-      { char: 'dima', text: 'По моим расчётам, вероятность её возвращения составляет 73.4%... подождите. *перепроверяет* Нет, это 12.6%. Или ноль. Я не уверен. 🤓' },
-      { char: 'nikita', text: '...А если просто ударить того, кто украл? 💪' },
-      { char: 'egor', text: 'Это НЕ ПРОСТО пропажа шавермы, пацаны! Я читал в интернете — это всё заговор! ФБР, ЦРУ и рептилоиды специально убрали шаверму, чтобы ослабить нас! 😰' },
-      { char: 'danya', text: 'Братан, это база. Абсолютная жиза. Я уже сделал мем про эту ситуацию. Он набрал 3 лайка. Это провал. 😂' },
-      { char: 'sasha', text: '...Нужно идти. Шаверма сама себя не найдёт. 🧘' },
-      { char: 'narrator', text: 'Все посмотрели на Сашу. Он сказал за весь вечер ровно одно предложение. И он был абсолютно прав.' },
-      { char: 'pilipyuk', text: 'Саша сказал — значит, идём! 🧔 Наш план: сначала магазин за припасами, потом... как-то разберёмся. Это и есть гениальный план!' },
-      { char: 'egor', text: 'Я составил список потенциальных агентов врага в нашем районе. Пункт первый: все гуси в парке Победы. Пункт второй: дед из магазина «Всё за 50». Пункт третий: все остальные. 😰' },
-    ],
-    choices: [
-      { text: '🎒 «Пацаны, берём только необходимое!» (начать подготовку)', type: 'good', karma: +5, next: 'shop' },
-      { text: '🍕 Сначала заказать пиццу, а потом идти', type: 'neutral', karma: 0, friendship: +5, next: 'shop_pizza' },
-      { text: '💤 «Может, завтра? Я не выспался...»', type: 'bad', karma: -5, hp: -5, next: 'shop_late' },
-    ]
-  },
-
-  shop_pizza: {
-    chapter: 'Пролог',
-    emoji: '🍕',
-    title: 'Ожидание пиццы',
-    location: '📍 Подвал, 23:30',
-    dialogue: [
-      { char: 'narrator', text: 'Пицца приехала через 40 минут. Всё это время Егор смотрел в окно и записывал номера проезжающих машин.' },
-      { char: 'danya', text: 'Это кринж, но в то же время... это база. Противоречие дня. 😂' },
-      { char: 'nikita', text: 'Я съел три куска. Готов бить. 💪' },
-      { char: 'pilipyuk', text: 'Окей, теперь у нас есть силы! Идём в магазин! 🧔' },
-    ],
-    choices: [
-      { text: '🚶 Идём в магазин «Всё за 50»!', type: 'neutral', next: 'shop' },
-    ]
-  },
-
-  shop_late: {
-    chapter: 'Пролог',
-    emoji: '😴',
-    title: 'Не выспался',
-    location: '📍 Подвал, поздно',
-    dialogue: [
-      { char: 'nikita', text: 'СЛАБАК! 💪 *поднимает Пилипюка и трясёт* Просыпайся! Шаверма не ждёт!' },
-      { char: 'pilipyuk', text: 'АА! Хорошо-хорошо! Иду! 😱' },
-      { char: 'narrator', text: 'Команда теряет драгоценное время. Шаверман чувствует их слабость и становится сильнее. HP команды: -5 🔴' },
-    ],
-    choices: [
-      { text: '🚶 Идём наконец-то в магазин!', type: 'bad', next: 'shop' },
-    ]
-  },
-
-  // ==================== SHOP ====================
-  shop: {
-    chapter: 'Глава 1',
-    emoji: '🏪',
-    title: 'Магазин «Всё за 50»',
-    location: '📍 ул. Ленина, 13',
-    dialogue: [
-      { char: 'narrator', text: 'Магазин «Всё за 50» — легендарное место. Говорят, дед Архип продаёт здесь ещё со времён СССР. Говорят также, что он немного сумасшедший. Это мягко сказано.' },
-      { char: 'ded', text: 'Кхе-кхе! Молодёжь! В магазин — значит, покупать! А не зубоскалить! У меня вон телевизор «Рубин» — работает с 1987-го! Надёжнее вашего интернета! 👴' },
-      { char: 'egor', text: '(шёпотом) Пилипюк. Я тебе говорю. Этот дед — агент. Видишь, как он смотрит? Это взгляд человека, который знает слишком много. 😰' },
-      { char: 'dima', text: 'Нам нужна еда, верёвка, фонарик. По моим расчётам, хватит 150 рублей. *считает снова* Или 300. Или 600. Зависит от курса кармы к рублю. 🤓' },
-      { char: 'danya', text: 'Деды в магазинах — это отдельный вид существ. Это не просто люди — это легенды. Это база. 😂' },
-      { char: 'pilipyuk', text: 'Так, пацаны. У нас мало денег. Как берём припасы? 🧔' },
-    ],
-    choices: [
-      { text: '💰 Заплатить честно (тратим последние деньги)', type: 'good', karma: +10, next: 'shop_pay' },
-      { text: '🤫 Попробовать стащить пока дед не смотрит', type: 'bad', karma: -15, next: 'shop_steal_attempt' },
-      { text: '🗣️ Попробовать договориться с дедом (харизма!)', type: 'neutral', karma: +5, next: 'shop_negotiate' },
-    ]
-  },
-
-  shop_pay: {
-    chapter: 'Глава 1',
-    emoji: '💸',
-    title: 'Честная покупка',
-    location: '📍 Магазин «Всё за 50»',
-    dialogue: [
-      { char: 'narrator', text: 'Команда складывает деньги со всех карманов. Никита находит сторублёвку в носке. Егор отказывается давать деньги — «это может быть фальшивка от ФБР».' },
-      { char: 'ded', text: 'Молодцы! Честные! Редкость нынче! Вот вам сдача — 3 рубля. И вот это... *достаёт из-под прилавка* ...Мазь от всего. Мне её дал один путешественник из Тибета. Или из Мытищ. Не помню. 👴' },
-      { char: 'pilipyuk', text: 'Э... спасибо? 🧔' },
-      { char: 'narrator', text: 'Вы получили: 🥫 Тушёнка, 🔦 Фонарик, 🧴 Мазь от всего (+15 HP при использовании)' },
-      { char: 'danya', text: 'Мазь от всего. Это либо величайшее изобретение, либо WD-40. 50/50. 😂' },
-    ],
-    choices: [
-      { text: '🚶 Идём в парк Победы!', type: 'good', next: 'park', addItem: '🧴 Мазь от всего', addItem2: '🔦 Фонарик', addItem3: '🥫 Тушёнка' },
-    ]
-  },
-
-  shop_steal_attempt: {
-    chapter: 'Глава 1',
-    emoji: '👀',
-    title: 'Попытка кражи',
-    location: '📍 Магазин «Всё за 50»',
-    dialogue: [
-      { char: 'narrator', text: 'Пилипюк незаметно тянется к полке с тушёнкой. Дима в это время громко объявляет: «А ВОТ МЫ ПРИШЛИ ЧТО-НИБУДЬ СТАЩИТЬ».' },
-      { char: 'dima', text: 'Ой. Это вслух было? Я думал — это внутренний монолог. Мои расчёты ошиблись снова. 🤓' },
-      { char: 'ded', text: '!!!!! Воры!!!! ВОРЫ В МАГАЗИНЕ!!!! *берёт метлу* У меня сынок в полиции работает! И зять в ФСБ! И кот Мурзик покусает! 👴😡' },
-    ],
-    choices: [
-      { text: '🏃 БЕЖАТЬ! (Никита выносит дверь плечом)', type: 'bad', karma: -10, hp: -15, next: 'shop_stolen' },
-      { text: '🙏 Извиниться и заплатить двойную цену', type: 'neutral', karma: +5, next: 'shop_sorry' },
-    ]
-  },
-
-  shop_sorry: {
-    chapter: 'Глава 1',
-    emoji: '😅',
-    title: 'Извинения',
-    location: '📍 Магазин «Всё за 50»',
-    dialogue: [
-      { char: 'pilipyuk', text: 'Дед Архип, простите! Это не мы хотели красть, это... Дима запутался в собственных мыслях! Мы заплатим! 🧔' },
-      { char: 'ded', text: '...Хм. Ладно. Но только потому что вы напомнили мне моего внука. Такой же дурачок. 👴' },
-      { char: 'danya', text: 'Нас только что назвали дурачками. Это... честно. 😂' },
-      { char: 'narrator', text: 'Вы получили: 🥫 Тушёнка, 🔦 Фонарик. Но кошелёк опустел полностью.' },
-    ],
-    choices: [
-      { text: '🚶 Идём в парк Победы!', type: 'neutral', next: 'park', addItem: '🔦 Фонарик', addItem2: '🥫 Тушёнка' },
-    ]
-  },
-
-  shop_stolen: {
-    chapter: 'Глава 1',
-    emoji: '🏃',
-    title: 'Великий побег',
-    location: '📍 Улица',
-    dialogue: [
-      { char: 'narrator', text: 'Никита вынес дверь одним плечом. Дверь улетела метров на пять. Команда выбегает на улицу под вопли деда Архипа и лай кота Мурзика (да, кот лаял).' },
-      { char: 'egor', text: 'Я ГОВОРИЛ! Агент! Он натренировал кота на нас! ФБР завербовало даже котов! 😰' },
-      { char: 'pilipyuk', text: 'Пацаны... у нас ничего нет. Мы всё бросили. Пустые руки. 😔' },
-      { char: 'sasha', text: '...Зато ноги целы. 🧘' },
-      { char: 'narrator', text: 'Карма упала. HP упал. Зато Никита чувствует себя прекрасно — дверь была хорошая.' },
-    ],
-    choices: [
-      { text: '💔 Идём в парк с пустыми руками...', type: 'bad', next: 'park' },
-    ]
-  },
-
-  shop_negotiate: {
-    chapter: 'Глава 1',
-    emoji: '🤝',
-    title: 'Переговоры',
-    location: '📍 Магазин «Всё за 50»',
-    dialogue: [
-      { char: 'pilipyuk', text: 'Дед Архип! Послушайте! Мы — герои! Мы ищем Легендарную Шаверму! Без неё город погибнет! Помогите нам, и мы вернём вашу молодость... то есть, шаверму! 🧔' },
-      { char: 'ded', text: '...Шаверму, говоришь? *задумывается на 30 секунд* ...Я тридцать лет не ел нормальной шавермы. С тех пор как пропала старая шавермяная на углу... 👴' },
-      { char: 'ded', text: 'Если принесёте мне кусочек Легендарной Шавермы — дам вам всё бесплатно! И бонусом — карту подземелья! Я её нашёл в кармане телогрейки. Давно. Не знаю откуда. 👴' },
-      { char: 'egor', text: '(шёпотом) Это ловушка. Очевидно ловушка. Дед — информатор. Карта — фальшивка. Но карта нам нужна... 😰' },
-      { char: 'narrator', text: 'Вы получили: 🗺️ Карта Подземелья, 🥫 Тушёнка, 🔦 Фонарик! Сделка заключена.' },
-    ],
-    choices: [
-      { text: '🤜 Ударить по рукам! (Бонус: +10 к дружбе с дедом)', type: 'good', next: 'park', addItem: '🗺️ Карта', addItem2: '🔦 Фонарик', addItem3: '🥫 Тушёнка', friendship: +10 },
-    ]
-  },
-
-  // ==================== PARK ====================
-  park: {
-    chapter: 'Глава 2',
-    emoji: '🌑',
-    title: 'Парк Победы Ночью',
-    location: '📍 Парк Победы, 01:00',
-    dialogue: [
-      { char: 'narrator', text: 'Парк ночью — совсем другое место. Фонари мигают. Где-то воет ветер. И где-то впереди... слышится шелест крыльев.' },
-      { char: 'egor', text: 'ТИХО! Слышите? Это ОНИ. ГУСИ. Я предупреждал! В сводке разведки за 2019 год — гуси в парке Победы являются агентами ФБР. АГЕНТАМИ! 😰' },
-      { char: 'danya', text: 'Егор, братан... это мем, конечно, но гуси реально страшные ночью. Это не жиза, это треш. 😂' },
-      { char: 'nikita', text: 'Гуси? А если просто ударить гуся? 💪' },
-      { char: 'dima', text: 'По моим расчётам, гусь весит 4-5 кг. Но в группе... *считает* ...Их около 12. Итого 48-60 кг агрессивной птицы. Это... нехорошо. 🤓' },
-      { char: 'narrator', text: 'Из темноты выходит СТАЯ ГУСЕЙ. Во главе — Главный Гусь, явно больше остальных. Он смотрит на вас. Вы смотрите на него. Момент истины.' },
-      { char: 'goose', text: 'ГААААА!!!! 🦢' },
-    ],
-    choices: [
-      { text: '⚔️ БИТЬ! Никита, вперёд! (QTE мини-игра)', type: 'bad', next: 'park_fight_qte', karma: -5 },
-      { text: '🕊️ Попробовать переговоры (нет, серьёзно)', type: 'good', next: 'park_negotiate', karma: +10 },
-      { text: '🥫 Дать гусям тушёнку (если есть)', type: 'neutral', next: 'park_bribe', karma: +5 },
-    ]
-  },
-
-  park_fight_qte: {
-    chapter: 'Глава 2',
-    emoji: '⚔️',
-    title: 'Битва с гусями!',
-    location: '📍 Парк Победы — ЗОНА БОЕВЫХ ДЕЙСТВИЙ',
-    dialogue: [
-      { char: 'nikita', text: 'НАКОНЕЦ-ТО ДЕЛО! ААААА! 💪🔥' },
-      { char: 'narrator', text: 'Никита бросается на гусей. Это... зрелище. ⚔️ НАЖМИ КНОПКУ КАК МОЖНО БЫСТРЕЕ!' },
-    ],
-    isQTE: true,
-    qteEmoji: '💪',
-    qteTitle: '⚔️ БИТВА С ГУСЯМИ!',
-    qteDesc: 'Никита нападает! Нажми как можно быстрее!',
-    qteTime: 3000,
-    onQTESuccess: 'park_fight_win',
-    onQTEFail: 'park_fight_lose',
-  },
-
-  park_fight_win: {
-    chapter: 'Глава 2',
-    emoji: '🏆',
-    title: 'Гуси побеждены!',
-    location: '📍 Парк Победы',
-    dialogue: [
-      { char: 'narrator', text: 'Никита сражается как легенда. Гуси разлетаются во все стороны. Главный Гусь в итоге бежит первым.' },
-      { char: 'nikita', text: 'Я ПОБЕДИЛ ГУСЕЙ! ЭТО ЛУЧШИЙ ДЕНЬ В МОЕЙ ЖИЗНИ! 💪🏆' },
-      { char: 'egor', text: 'Победа! Хотя... может, они специально притворились слабее? Чтобы мы расслабились? ФБР умеет проигрывать стратегически! 😰' },
-      { char: 'danya', text: 'Никита победил гусей. Это будет самый просматриваемый мем недели. 😂' },
-      { char: 'narrator', text: 'Вы прошли! Но карма немного упала — гуси всё-таки живые существа.' },
-    ],
-    choices: [
-      { text: '🚶 Идём к заброшенной школе!', type: 'neutral', next: 'school', hp: -10, karma: -5 },
-    ]
-  },
-
-  park_fight_lose: {
-    chapter: 'Глава 2',
-    emoji: '💀',
-    title: 'Гуси — это сила...',
-    location: '📍 Парк Победы',
-    dialogue: [
-      { char: 'narrator', text: 'Никита сражается храбро, но гусей СЛИШКОМ много. Они окружают команду.' },
-      { char: 'nikita', text: 'Их... слишком много... *задыхаясь* ...Отступаем! 💪' },
-      { char: 'pilipyuk', text: 'ОТСТУПАЕМ! *падает* ...Ничего, нормально, просто упал... 🧔' },
-      { char: 'narrator', text: 'Команда в беспорядке отступает. HP: -20. Это была плохая идея.' },
-      { char: 'dima', text: 'По моим расчётам, вероятность победы над 12 гусями была 8%. Я не сказал, потому что... ну... забыл. 🤓' },
-    ],
-    choices: [
-      { text: '💔 Обойти парк другим путём (теряем время)', type: 'bad', next: 'school', hp: -20, karma: -10 },
-    ]
-  },
-
-  park_negotiate: {
-    chapter: 'Глава 2',
-    emoji: '🕊️',
-    title: 'Переговоры с гусями',
-    location: '📍 Парк Победы',
-    dialogue: [
-      { char: 'pilipyuk', text: 'Эй! Эй-эй, гусь! Мы не враги! Мы ищем Легендарную Шаверму! Ты же понимаешь, да? 🧔' },
-      { char: 'goose', text: '...га? 🦢' },
-      { char: 'sasha', text: '...Он думает. 🧘' },
-      { char: 'egor', text: 'САША! Ты понимаешь язык гусей?! ТЫ ОДИН ИЗ НИХ?! 😱😰' },
-      { char: 'sasha', text: '...Нет. Просто внимателен. 🧘' },
-      { char: 'narrator', text: 'Главный Гусь смотрит на Сашу. Саша смотрит на Главного Гуся. Происходит что-то... духовное.' },
-      { char: 'goose', text: 'ГА-ГА-ГА!! 🦢✨' },
-      { char: 'sasha', text: '...Он говорит — проходите. Шаверман — общий враг. Гуси тоже пострадали от его власти. 🧘' },
-      { char: 'pilipyuk', text: 'САША РАЗГОВАРИВАЕТ С ГУСЯМИ. Это нормально? Это нормально. Всё нормально. 🧔😅' },
-      { char: 'narrator', text: 'Главный Гусь отходит в сторону. Стая расступается. Вы получаете: 🪶 Гусиное Перо Удачи (+10 HP в бою)' },
-    ],
-    choices: [
-      { text: '🚶 Пройти через парк с гусиным эскортом!', type: 'good', next: 'school', addItem: '🪶 Перо Удачи', friendship: +15, karma: +10 },
-    ]
-  },
-
-  park_bribe: {
-    chapter: 'Глава 2',
-    emoji: '🥫',
-    title: 'Взятка тушёнкой',
-    location: '📍 Парк Победы',
-    dialogue: [
-      { char: 'danya', text: 'Щас я по-умному сделаю. *достаёт тушёнку* Эй, гусаны! Угощайтесь! Это база! 😂' },
-      { char: 'goose', text: 'ГА?! ...га-га-га... 🦢😮' },
-      { char: 'egor', text: 'Даня... ты только что подкупил агентов ФБР едой. Это либо гениально, либо ужасно. 😰' },
-      { char: 'narrator', text: 'Гуси окружают тушёнку. Главный Гусь смотрит на вас оценивающим взглядом, потом кивает (да, гусь кивнул) и отходит.' },
-      { char: 'danya', text: 'Видите? Угощение решает всё. Лайф хак. 😂✨' },
-      { char: 'narrator', text: 'Вы потеряли: 🥫 Тушёнка. Но прошли! Карма +5 за смекалку.' },
-    ],
-    choices: [
-      { text: '🚶 Идём к заброшенной школе!', type: 'neutral', next: 'school', karma: +5 },
-    ]
-  },
-
-  // ==================== SCHOOL ====================
-  school: {
-    chapter: 'Глава 3',
-    emoji: '🏚️',
-    title: 'Заброшенная Школа',
-    location: '📍 ул. Гагарина, заброшенная школа №13',
-    dialogue: [
-      { char: 'narrator', text: 'Заброшенная школа №13. Говорят, её закрыли после того, как директор провозгласил себя «Повелителем Тригонометрии». Коридоры пусты. Пыль. Темнота.' },
-      { char: 'pilipyuk', text: 'По карте... Шаверман спрятал ключ к подземелью именно здесь. В кабинете математики на третьем этаже. 🧔' },
-      { char: 'egor', text: 'Школа номер ТРИНАДЦАТЬ. Это не случайно. Тринадцать — сакральное число рептилоидов. Я ПРЕДУПРЕЖДАЮ. 😰' },
-      { char: 'nikita', text: 'А если выбить дверь кабинета? 💪' },
-      { char: 'dima', text: 'Внутри — три загадки. По моим расчётам, я решу все за 4 минуты. *потирает руки* Или облажаюсь. Равновероятные события. 🤓' },
-      { char: 'narrator', text: 'На двери кабинета математики — табличка: «Реши загадки — войди. Не реши — останешься тут навсегда. (Ну, это преувеличение. Но подумайте об этом.)»' },
-    ],
-    choices: [
-      { text: '🤓 Дать Диме решить загадки (умник же)', type: 'neutral', next: 'school_dima', karma: 0 },
-      { text: '😂 Поискать ответы в мемах (метод Дани)', type: 'neutral', next: 'school_memes', karma: +5 },
-      { text: '💪 Выбить дверь! (метод Никиты)', type: 'bad', karma: -10, next: 'school_force' },
-      { text: '🧘 Подождать, что скажет Саша', type: 'good', karma: +5, next: 'school_sasha' },
-    ]
-  },
-
-  school_dima: {
-    chapter: 'Глава 3',
-    emoji: '🤓',
-    title: 'Загадки по-димовски',
-    location: '📍 Кабинет математики',
-    dialogue: [
-      { char: 'dima', text: 'Первая загадка: «Что всегда впереди тебя, но никогда не видно?» — ОТВЕТ: будущее! Элементарно! 🤓✨' },
-      { char: 'narrator', text: '✅ Правильно! Первая дверь открывается.' },
-      { char: 'dima', text: 'Вторая: «Чем больше берёшь — тем больше остаётся?» — Очевидно это... деньги! Нет, время! Нет... долги? 🤓😅' },
-      { char: 'narrator', text: '❌ Неправильно. Ответ: яма. Дима немного расстроен.' },
-      { char: 'dima', text: 'Третья: «У меня есть города, но нет домов. Есть леса, но нет деревьев.» — Это... это... *пауза на 3 минуты* ...Карта! 🤓🎉' },
-      { char: 'narrator', text: '✅ Правильно! Дима решил 2 из 3. Кое-как, но вошли.' },
-      { char: 'pilipyuk', text: 'Дима, ты гений! Немного. Частично. 🧔' },
-      { char: 'dima', text: 'По моим расчётам, мой результат — 67%. Ниже среднего. Выше провала. Живём. 🤓' },
-    ],
-    choices: [
-      { text: '🗝️ Взять ключ и идти к подземелью!', type: 'neutral', next: 'dungeon_entrance', addItem: '🗝️ Ключ Подземелья', friendship: +10 },
-    ]
-  },
-
-  school_memes: {
-    chapter: 'Глава 3',
-    emoji: '😂',
-    title: 'Метод мемов',
-    location: '📍 Кабинет математики',
-    dialogue: [
-      { char: 'danya', text: 'Стоп-стоп-стоп. Загадки? Я видел загадки в интернете. *листает телефон* Вот! «Что впереди — но не видно?» — это мем! Ответ — будущее! 😂' },
-      { char: 'narrator', text: '✅ Первая дверь открывается.' },
-      { char: 'danya', text: 'Вторая... «Чем больше берёшь — тем больше остаётся?» Я знаю этот мем! Яма! Классика! Это база! 😂' },
-      { char: 'narrator', text: '✅ Вторая дверь открывается.' },
-      { char: 'danya', text: 'Третья... о! Карта! Я этот мем уже трижды репостил! ЖИЗА 😂🎉' },
-      { char: 'narrator', text: '✅ Все три загадки решены! Метод мемов — 100% эффективность.' },
-      { char: 'dima', text: '...Подождите. Мемы — это фактически база данных человеческого знания в упрощённой форме. Мои расчёты были неверны о полезности мемов. 🤓😮' },
-      { char: 'pilipyuk', text: 'Даня спас всех. Фиксируем. 🧔' },
-    ],
-    choices: [
-      { text: '🗝️ Взять ключ! Все три замка открыты!', type: 'good', next: 'dungeon_entrance', addItem: '🗝️ Ключ Подземелья', friendship: +20, karma: +10 },
-    ]
-  },
-
-  school_force: {
-    chapter: 'Глава 3',
-    emoji: '💥',
-    title: 'Метод Никиты',
-    location: '📍 Кабинет математики',
-    dialogue: [
-      { char: 'nikita', text: 'Загадки? ПФФ. ХИААА! 💪💥' },
-      { char: 'narrator', text: 'Никита вышибает дверь. Стена рядом с дверью. И ещё одну стену для уверенности.' },
-      { char: 'pilipyuk', text: 'Никита... это была несущая стена... 🧔😅' },
-      { char: 'narrator', text: 'Потолок немного провис, но ключ найден! HP: -10 (обломки). Карма: -10 (вандализм в школе).' },
-      { char: 'egor', text: 'Никита только что разрушил советское образование. Символично. 😰' },
-      { char: 'danya', text: 'Никита не решает проблемы, Никита устраняет объекты, содержащие проблемы. 😂' },
-    ],
-    choices: [
-      { text: '🗝️ Берём ключ из-под обломков и уходим!', type: 'bad', next: 'dungeon_entrance', addItem: '🗝️ Ключ Подземелья' },
-    ]
-  },
-
-  school_sasha: {
-    chapter: 'Глава 3',
-    emoji: '🧘',
-    title: 'Мудрость Саши',
-    location: '📍 Кабинет математики',
-    dialogue: [
-      { char: 'narrator', text: 'Все ждут. Саша стоит перед дверью. Смотрит. Пауза.' },
-      { char: 'sasha', text: '...Первая загадка говорит о будущем. Вторая — о яме. Третья — о карте. 🧘' },
-      { char: 'narrator', text: 'Саша называет ответы тихим, спокойным голосом. Три замка щёлкают один за другим.' },
-      { char: 'egor', text: 'КАК?! Саша!! Ты — агент?! Тебя завербовали?! 😱' },
-      { char: 'sasha', text: '...Я просто думал. 🧘' },
-      { char: 'danya', text: 'Саша — финальный босс интеллекта. Молчит-молчит, потом делает всё сам. Это... это настоящая мудрость. 😂🙏' },
-      { char: 'pilipyuk', text: 'Саша, братан, ты легенда. Тихая легенда. 🧔❤️' },
-    ],
-    choices: [
-      { text: '🗝️ Взять ключ и идти! Все восхищены Сашей!', type: 'good', next: 'dungeon_entrance', addItem: '🗝️ Ключ Подземелья', friendship: +25, karma: +15 },
-    ]
-  },
-
-  // ==================== DUNGEON ENTRANCE ====================
-  dungeon_entrance: {
-    chapter: 'Глава 4',
-    emoji: '🕳️',
-    title: 'Вход в Подземелье',
-    location: '📍 Подземелье под школой',
-    dialogue: [
-      { char: 'narrator', text: 'За потайной дверью — лестница, уходящая вглубь. Темно. Сыро. Пахнет шавермой. И это не добрый знак.' },
-      { char: 'pilipyuk', text: 'Пацаны... это настоящее подземелье. Под НАШЕЙ школой было настоящее подземелье. Всё детство потрачено впустую. 🧔' },
-      { char: 'egor', text: 'ВОТ! Я ГОВОРИЛ! Подземелье! Это тайная база! ФБР или рептилоиды! Карты не врут! ...Хотя карты часто врут. 😰' },
-      { char: 'dima', text: 'По архитектурным расчётам, этому подземелью около 40 лет. Или 400. Я не строитель. 🤓' },
-      { char: 'nikita', text: 'Тут воняет шавермой. Я хочу шаверму. 💪' },
-      { char: 'danya', text: 'Мы стоим у входа в настоящее подземелье в поисках легендарной шавермы. Это либо квест, либо я что-то перепил. Скорее квест. 😂' },
-      { char: 'sasha', text: '...Шаверман ждёт. Нужно быть готовыми. 🧘' },
-      { char: 'narrator', text: 'Впереди — последний рубеж. Шаверман. Подземелье. Финальная битва.' },
-    ],
-    choices: [
-      { text: '⚔️ В бой! Идём напролом!', type: 'neutral', next: 'dungeon_fight', karma: 0 },
-      { text: '🤔 Разработать тактику перед боем', type: 'good', next: 'dungeon_plan', karma: +5, friendship: +5 },
-    ]
-  },
-
-  dungeon_plan: {
-    chapter: 'Глава 4',
-    emoji: '📋',
-    title: 'Тактика Команды',
-    location: '📍 Вход в подземелье',
-    dialogue: [
-      { char: 'pilipyuk', text: 'Стоп. Перед тем как войти — план. Пацаны, у кого какие идеи? 🧔' },
-      { char: 'dima', text: 'По моим расчётам, нам нужна дистанционная атака. Шаверман, вероятно, силён в ближнем бою. *считает* ...Или наоборот. 70% за одно, 70% за другое. Не спрашивайте. 🤓' },
-      { char: 'nikita', text: 'БИТЬ! ПРОСТО БИТЬ! ОЧЕНЬ СИЛЬНО! 💪' },
-      { char: 'egor', text: 'Нам нужен контрагент. Заслать одного как шпиона! Я готов. Хотя нет, меня сразу видно — у меня слишком умный взгляд. 😰' },
-      { char: 'danya', text: 'А если просто зайти и сказать «это база»? Вдруг Шаверман уважает мемы? 😂' },
-      { char: 'sasha', text: '...Его слабость — одиночество. Повелитель шаверм не имеет друзей. Мы — команда. Это наш козырь. 🧘' },
-      { char: 'narrator', text: 'Все замолчали. Саша снова сказал главное. Бонус: +10 к атаке в финальном бою!' },
-    ],
-    choices: [
-      { text: '⚔️ Вперёд, с планом и силой команды!', type: 'good', next: 'dungeon_fight', friendship: +10, addItem: '📋 Тактический план' },
-    ]
-  },
-
-  // ==================== DUNGEON FIGHT ====================
-  dungeon_fight: {
-    chapter: 'Финальная Битва',
-    emoji: '👹',
-    title: 'Шаверман: Повелитель Шаверм',
-    location: '📍 Тронный зал Шавермана',
-    dialogue: [
-      { char: 'narrator', text: 'Тронный зал. Стены покрыты лавашом. Пол — из соуса. На троне из засохших шаурм сидит ОН.' },
-      { char: 'shaverman', text: 'Хе-хе-хе... 👹 Добро пожаловать, герои. Я ЖДАЛ вас. Легендарная Шаверма — МОЯ! И никто не заберёт её!' },
-      { char: 'pilipyuk', text: 'Шаверман! Верни шаверму городу! Люди страдают без неё! 🧔' },
-      { char: 'shaverman', text: 'Страдают? ХА! Они недостойны шавермы! Только я достоин! Я — ПОВЕЛИТЕЛЬ! 👹🔥' },
-      { char: 'nikita', text: 'Ааа всё ясно. Сейчас получит. 💪' },
-      { char: 'egor', text: 'Он — конечный агент! Всё это время это был ОН! Я знал! Я говорил! Меня никто не слушал! 😰' },
-      { char: 'shaverman', text: 'Выбирайте тактику... или умрите! 👹⚔️' },
-    ],
-    choices: [
-      { text: '💪 СИЛОВАЯ АТАКА! Никита, ломи!', type: 'neutral', next: 'fight_power' },
-      { text: '🧠 УМНАЯ ТАКТИКА! Дима рассчитывает слабость!', type: 'good', next: 'fight_smart' },
-      { text: '💬 ПЕРЕГОВОРЫ! Попробовать поговорить с боссом', type: 'good', next: 'fight_talk', karma: +10 },
-      { text: '😂 МЕМНАЯ АТАКА! Даня атакует мемами!', type: 'secret', next: 'fight_meme' },
-    ]
-  },
-
-  fight_power: {
-    chapter: 'Финальная Битва',
-    emoji: '💥',
-    title: 'Силовая Атака!',
-    location: '📍 Тронный зал Шавермана',
-    isQTE: true,
-    qteEmoji: '💪',
-    qteTitle: '💥 СИЛОВАЯ АТАКА!',
-    qteDesc: 'Никита разгоняется! ЖМИТЕ!',
-    qteTime: 2500,
-    onQTESuccess: 'fight_power_win',
-    onQTEFail: 'fight_power_struggle',
-    dialogue: [
-      { char: 'nikita', text: 'НИКИТА-СМЭШ!!! 💪💥' },
-    ],
-  },
-
-  fight_power_win: {
-    chapter: 'Финальная Битва',
-    emoji: '💥',
-    title: 'Мощный удар!',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'narrator', text: 'Никита врывается с силой носорога. Шаверман отлетает с трона. Лаваш трещит. Соус брызжет.' },
-      { char: 'shaverman', text: 'Невозможно... я Шаверман... как... 👹💫' },
-      { char: 'nikita', text: 'Кто-нибудь ещё хочет получить?! НЕТ?! ВОТ И ХОРОШО! 💪🏆' },
-      { char: 'narrator', text: 'Шаверман ослаблен! HP Шавермана: 40. Продолжайте атаку!' },
-    ],
-    choices: [
-      { text: '⚔️ Добить Шавермана! Финальный удар!', type: 'good', next: 'fight_final_choice' },
-    ]
-  },
-
-  fight_power_struggle: {
-    chapter: 'Финальная Битва',
-    emoji: '😓',
-    title: 'Не вышло...',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'narrator', text: 'Никита бьёт, но Шаверман — не простой враг. Он поглощает удар слоями лаваша-брони.' },
-      { char: 'shaverman', text: 'Глупцы! У меня многослойная защита! Как хорошая шаверма! 👹😈' },
-      { char: 'nikita', text: '...Он защищён едой. Это нечестно. 💪😤' },
-      { char: 'narrator', text: 'HP команды: -15. Нужна другая тактика!' },
-    ],
-    choices: [
-      { text: '🧠 Сменить тактику — умная атака!', type: 'good', next: 'fight_smart', hp: -15 },
-      { text: '💬 Попробовать переговоры!', type: 'good', next: 'fight_talk', hp: -15 },
-    ]
-  },
-
-  fight_smart: {
-    chapter: 'Финальная Битва',
-    emoji: '🧠',
-    title: 'Тактика Димы',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'dima', text: 'Я анализирую его паттерны атаки... *наблюдает* ...Шаверман атакует по часовой стрелке! Нужно зайти слева! 🤓' },
-      { char: 'narrator', text: 'Команда обходит Шавермана слева. Открывается уязвимость!' },
-      { char: 'dima', text: 'ВОТ! Его слабость — верхний слой! Там, где лук! Никита — туда! 🤓🎯' },
-      { char: 'nikita', text: 'ГДЕ ЛУК?! ВИЖУ ЛУК! ХИИИЯ! 💪' },
-      { char: 'shaverman', text: 'НЕТ! НЕ ЛУК! ЭТО МОЁ УЯЗВИМОЕ МЕСТО!!! 👹😱' },
-      { char: 'narrator', text: 'Гениально! Дима ошибся только в двух деталях из десяти. Это личный рекорд. HP Шавермана: 20!' },
-    ],
-    choices: [
-      { text: '⚔️ Финальный удар! Добить Шавермана!', type: 'good', next: 'fight_final_choice', friendship: +10 },
-    ]
-  },
-
-  fight_talk: {
-    chapter: 'Финальная Битва',
-    emoji: '💬',
-    title: 'Переговоры с Боссом',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'pilipyuk', text: 'Стоп! СТОП! Шаверман... почему ты это делаешь? Зачем тебе Шаверма? 🧔' },
-      { char: 'shaverman', text: '...Почему? ХА! Потому что никто никогда не спрашивал меня, хочу ли я шаверму! Все просто брали и ели! 👹😢' },
-      { char: 'sasha', text: '...Ты одинок. 🧘' },
-      { char: 'shaverman', text: '...Я... да. Я Шаверман. Повелитель. Но у меня нет друзей. Никто не хочет дружить с тем, кто пахнет луком и чесночным соусом. 👹' },
-      { char: 'danya', text: 'Бро... это реальная жиза. Это грустно, если честно. 😂😢' },
-      { char: 'egor', text: 'Это ловушка! Он притворяется грустным! Это тактика рептилоидов — вызвать сочувствие! 😰' },
-      { char: 'pilipyuk', text: 'Шаверман... если мы вернём шаверму городу... ты можешь прийти с нами. Быть частью команды. 🧔' },
-      { char: 'shaverman', text: '...Серьёзно? 👹 ...Меня ещё никто не звал... никуда... 😢' },
-      { char: 'narrator', text: 'Тронный зал наполняется странной тишиной. Шаверман плачет. Это единственное нечто, чего никто не ожидал.' },
-    ],
-    choices: [
-      { text: '🤝 Предложить дружбу Шаверману!', type: 'good', next: 'ending_good_talk', karma: +25, friendship: +20 },
-      { text: '⚔️ Нет. Это слишком странно. Бить!', type: 'neutral', next: 'fight_final_choice' },
-    ]
-  },
-
-  fight_meme: {
-    chapter: 'Финальная Битва',
-    emoji: '😂',
-    title: 'Мемная Атака!',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'danya', text: 'Окей, у меня есть план. И он абсурдный. ШАВЕРМАН! А ты знаешь этот мем? *показывает телефон* 😂' },
-      { char: 'shaverman', text: '...Что это? 👹❓' },
-      { char: 'danya', text: 'Это ты! «Когда ты Повелитель Шаверм, но никто не оценил твою игру». Хе-хе. 😂' },
-      { char: 'shaverman', text: '...Это про меня? 👹' },
-      { char: 'danya', text: 'И вот этот. И этот. И... ВОТ ЭТОТ. 😂📱' },
-      { char: 'narrator', text: 'Шаверман смотрит мемы. Пауза.' },
-      { char: 'shaverman', text: '...ХА. ХАХАХА. ХААХАХАХА!!!! Это смешно!!! ЭТО СМЕШНО!!!! 👹😂' },
-      { char: 'narrator', text: 'Шаверман хохочет. Его броня из лаваша трескается от смеха. Это... работает?' },
-    ],
-    choices: [
-      { text: '🌯 Хватаем шаверму пока он ржёт!', type: 'secret', next: 'fight_meme_win', karma: +5, friendship: +15 },
-    ]
-  },
-
-  fight_meme_win: {
-    chapter: 'Финальная Битва',
-    emoji: '🎉',
-    title: 'Мемы победили!',
-    location: '📍 Тронный зал',
-    dialogue: [
-      { char: 'narrator', text: 'Пока Шаверман катается по полу от смеха, Пилипюк хватает Легендарную Шаверму!' },
-      { char: 'shaverman', text: 'СТОЙ! Ты... ты взял шаверму... но мемы были такие смешные... 👹😂😢' },
-      { char: 'pilipyuk', text: 'Шаверман! Отпусти её! Мы возвращаем её городу! 🧔' },
-      { char: 'narrator', text: 'Шаверман задумывается. Мемы изменили его сердце.' },
-    ],
-    choices: [
-      { text: '🏆 К счастливой концовке!', type: 'good', next: 'ending_good_meme' },
-    ]
-  },
-
-  fight_final_choice: {
-    chapter: 'Финальная Битва',
-    emoji: '⚡',
-    title: 'Финальный Удар!',
-    location: '📍 Тронный зал',
-    isQTE: true,
-    qteEmoji: '⚡',
-    qteTitle: '⚡ ФИНАЛЬНЫЙ УДАР!',
-    qteDesc: 'ВСЯ КОМАНДА АТАКУЕТ! ЖМИТЕ СЕЙЧАС!',
-    qteTime: 2000,
-    onQTESuccess: 'ending_good',
-    onQTEFail: 'ending_bad',
-    dialogue: [
-      { char: 'narrator', text: 'ВСЯ КОМАНДА — ВМЕСТЕ! ПОСЛЕДНИЙ ШАНС!' },
-    ],
-  },
-
-  // ==================== ENDINGS ====================
-
-  ending_good: {
-    chapter: 'Финал',
-    emoji: '🏆',
-    title: 'Победа!',
-    isEnding: true,
-    endingType: 'good',
-    endingEmoji: '🏆',
-    endingTitle: 'Победа Команды!',
-    endingSubtitle: '🌯 Легендарная Шаверма возвращена!',
-    endingText: `Финальный удар всей команды сносит Шавермана с трона! Его лавашовые доспехи рассыпаются. Легендарная Шаверма парит в воздухе, окружённая золотым светом.\n\nПилипюк ловит её обеими руками.\n\n— Пацаны... мы сделали это. МЫ СДЕЛАЛИ ЭТО! 🧔🏆\n\nНикита поднимает всех на руки одновременно. Дима пересчитывает — все шесть человек. Правильно. Первый раз за день.\n\nЕгор продолжает подозревать всех вокруг, но даже он улыбается.\n\nДаня уже снимает на телефон — это будет лучший мем сезона.\n\nСаша смотрит на шаверму и говорит единственное слово:\n— ...Вкусно. 🧘\n\nГород ликует. Дед Архип получил свой кусочек. Главный Гусь одобрительно гакает в парке.\n\nА в подземелье остался только лаваш и чесночный соус — как напоминание о великом квесте.`,
-    dialogue: [
-      { char: 'narrator', text: 'ВЫ ПОБЕДИЛИ! 🏆🎉' },
-    ],
-  },
-
-  ending_bad: {
-    chapter: 'Финал',
-    emoji: '💀',
-    title: 'Поражение...',
-    isEnding: true,
-    endingType: 'bad',
-    endingEmoji: '💀',
-    endingTitle: 'Шаверман Победил...',
-    endingSubtitle: '😢 Легендарная Шаверма потеряна',
-    endingText: `Команда устала. Силы закончились. В последний момент Шаверман уклоняется и наносит контрудар — волна горячего соуса накрывает всех шестерых.\n\n— ВЫ ПРОИГРАЛИ! 👹😈 — кричит Шаверман. — Легендарная Шаверма НАВСЕГДА ОСТАЁТСЯ СО МНОЙ!\n\nКоманда отступает с позором. Пилипюк бормочет «я придумал гениальный план... нет, не придумал». Дима пересчитывает шансы победы — они были 3%. Он не сказал об этом заранее.\n\nНикита хочет ударить ещё раз, но ноги не слушаются.\n\nЕгор говорит «я же говорил» ровно 47 раз подряд.\n\nДаня делает мем про поражение. Он наберёт миллион просмотров. Это маленькая победа в большом проигрыше.\n\nСаша молчит. Но смотрит вперёд. Это значит — они вернутся.\n\n...Может быть.`,
-    dialogue: [
-      { char: 'narrator', text: 'ПОРАЖЕНИЕ... 💀' },
-    ],
-  },
-
-  ending_good_talk: {
-    chapter: 'Финал',
-    emoji: '🌟',
-    title: 'Дружба победила!',
-    isEnding: true,
-    endingType: 'good',
-    endingEmoji: '🌟',
-    endingTitle: 'Дружба Сильнее Шавермы!',
-    endingSubtitle: '🤝 Шаверман стал другом команды',
-    endingText: `Шаверман — теперь Артём (он давно так хотел, чтобы его называли). Легендарная Шаверма возвращена в город.\n\nАртём (бывший Шаверман) вступает в команду. Теперь их семеро.\n\nДед Архип рыдает от радости — его любимая шавермяная снова открылась. Он дарит команде бесплатный абонемент.\n\nЕгор не доверяет Артёму ещё три месяца, но потом они становятся лучшими друзьями — оба параноят вместе.\n\nНикита и Артём открывают совместный тренажёрный зал. Называют его «Шаверма & Мышцы».\n\nДима пересчитывает — вероятность такого финала была 0.3%. Он горд.\n\nДаня делает сериал из их приключений. 10 эпизодов. 50 миллионов просмотров. Это база.\n\nСаша произносит первую в истории длинную речь:\n— ...Всё, что нам нужно — это друзья. Даже если они пахнут луком. 🧘\n\nАбсолютно все плачут.`,
-    dialogue: [
-      { char: 'narrator', text: 'ЛУЧШАЯ КОНЦОВКА ДОСТИГНУТА! 🌟' },
-    ],
-  },
-
-  ending_good_meme: {
-    chapter: 'Финал',
-    emoji: '😂',
-    title: 'Мемы победили зло!',
-    isEnding: true,
-    endingType: 'good',
-    endingEmoji: '😂',
-    endingTitle: 'Сила Мемов Непобедима!',
-    endingSubtitle: '😂 Даня — герой нашего времени',
-    endingText: `Шаверман всё ещё смеётся, когда команда уходит с Легендарной Шавермой.\n\n— Погоди! — кричит он вслед. — Покажи ещё мемов!\n\nДаня оборачивается.\n— Приходи в город. Там интернет хороший. Мемов — море.\n\nШаверман задумывается на секунду...\n— ...ЛА-А-АДНО.\n\nТак Шаверман оставил своё подземелье, вышел в мир и открыл аккаунт в Telegram. Сейчас у него 120,000 подписчиков. Он постит мемы про шаверму и иногда пишет «я бывший злодей и вот что я понял».\n\nДаня стал его модератором. Гонорар — бесплатная шаверма раз в неделю.\n\nЭто база. Абсолютная жиза.`,
-    dialogue: [
-      { char: 'narrator', text: 'МЕМНАЯ КОНЦОВКА! 😂🎉' },
-    ],
-  },
-
-  ending_secret: {
-    chapter: 'Финал',
-    emoji: '🤡',
-    title: 'Пилипюк Становится...',
-    isEnding: true,
-    endingType: 'secret',
-    endingEmoji: '🤡',
-    endingTitle: 'Пилипюк — Новый Шаверман!',
-    endingSubtitle: '🌯 Власть шавермы опьяняет...',
-    endingText: `Пилипюк держит Легендарную Шаверму. Она светится золотым светом в его руках.\n\nИ что-то меняется в его глазах.\n\n— Пацаны... я держу Легендарную Шаверму... и я чувствую... СИЛУ. БЕСКОНЕЧНУЮ СИЛУ ШАВЕРМЫ.\n\nКоманда переглядывается.\n\n— Пилипюк, отдай шаверму, — говорит Дима.\n— Нет. Нет-нет-нет. Я — НОВЫЙ ПОВЕЛИТЕЛЬ ШАВЕРМЫ! Я — ПИЛИПЮК-ШАВЕРМАН!\n\nСаша произносит своё второе за день предложение:\n— ...Ожидаемо.\n\nЕгор кричит «Я ЖЕ ГОВОРИЛ ЧТО ЭТО ЛОВУШКА» и оказывается абсолютно прав, хотя и не по той причине.\n\nНикита пытается отнять шаверму силой. Пилипюк уворачивается. Никита удивлён.\n\nДаня делает мем «когда твой лидер стал боссом». 1 миллион лайков за час.\n\nПилипюк занимает трон Шавермана. Шаверман облегчённо уходит на пенсию.\n\nДа здравствует новый Пилипюк-Шаверман. Боже, что произошло.`,
-    dialogue: [
-      { char: 'narrator', text: 'СЕКРЕТНАЯ КОНЦОВКА! 🤡' },
-    ],
-  },
-
-  ending_dream: {
-    chapter: 'Финал',
-    emoji: '😴',
-    title: 'Это был сон Егора',
-    isEnding: true,
-    endingType: 'absurd',
-    endingEmoji: '😴',
-    endingTitle: 'Это Всё Был Сон...',
-    endingSubtitle: '😂 Егор проснулся в подвале',
-    endingText: `Егор открывает глаза.\n\nОн лежит в подвале Пилипюка. Все вокруг играют в карты. Никакого подземелья не было. Никакого Шавермана. Никаких гусей-агентов ФБР.\n\n— Егор, ты задремал прямо за столом, — говорит Дима. — Слюни пустил.\n\nЕгор смотрит на руки. Шавермы нет.\n\n— Ребята... мне приснился такой сон... про шаверму... про квест... вы были там...\n\nПилипюк смеётся.\n— Егор, ты просто хотел кушать. Вот тебе шаверма. *протягивает обычную шаверму из пакета*\n\nЕгор берёт шаверму. Кусает. Это... это вкусно. Это лучшая шаверма в мире. Может, она и была легендарной — просто настоящей и тёплой.\n\nДаня фотографирует выражение его лица.\n— Это мем. Называется «когда реальность лучше квеста». 😂\n\nСаша смотрит в окно и говорит:\n— ...Всё уже здесь. 🧘\n\nИ Егор думает — может, рептилоиды и ФБР не так уж важны, когда рядом друзья и горячая шаверма.`,
-    dialogue: [
-      { char: 'narrator', text: 'АБСУРДНАЯ КОНЦОВКА! 😂' },
-    ],
-  },
-
-};
-
-// ============================================================
-// TYPEWRITER
-// ============================================================
-let typingQueue = [];
-let isTyping = false;
-
-function typeText(element, text, speed = 18) {
-  return new Promise(resolve => {
-    element.textContent = '';
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor';
-    element.appendChild(cursor);
-
-    let i = 0;
-    function tick() {
-      if (i < text.length) {
-        cursor.before(text[i]);
-        i++;
-        setTimeout(tick, speed);
-      } else {
-        cursor.remove();
-        resolve();
-      }
+// PROJECTILES
+function mkProj(x,y,vx,vy,fromE,dmg,col,grav){PROJs.push({x,y,w:11,h:11,vx,vy,fromE,dmg,col,life:210,grav:!!grav});}
+function tickPROJs(plats){
+  PROJs=PROJs.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;if(p.grav)p.vy+=0.2;p.life--;
+    for(const pl of plats){if(pl.solid&&ovlp(p,pl)){spawnP(p.x,p.y,p.col,4);return false;}}
+    if(p.fromE&&P.ifr===0&&ovlp(p,P)){hurtP(p.dmg);spawnP(p.x,p.y,'#f55',5);return false;}
+    if(!p.fromE){
+      for(const e of ENMs){if(!e.dead&&e.ifr===0&&ovlp(p,e)){hurtE(e,p.dmg);spawnP(p.x,p.y,'#ff0',5);return false;}}
+      if(boss&&boss.hp>0&&boss.ifr===0&&ovlp(p,boss)){hurtBoss(p.dmg);spawnP(p.x,p.y,'#ff0',7);return false;}
     }
-    tick();
+    return p.life>0;
   });
 }
+function drawPROJs(ox,oy){for(const p of PROJs){cx.fillStyle=p.col;cx.beginPath();cx.arc(p.x-ox+p.w/2,p.y-oy+p.h/2,p.w/2,0,Math.PI*2);cx.fill();}}
 
-// ============================================================
-// UI HELPERS
-// ============================================================
-function showNotification(text, duration = 2500) {
-  const el = document.getElementById('notification');
-  el.innerHTML = text;
-  el.style.display = 'block';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
+// PICKUPS
+function mkPkup(type,x,y){PKUPs.push({type,x,y,w:18,h:18,vy:-4,life:280,static:false});}
+function tickPKUPs(plats){
+  PKUPs=PKUPs.filter(p=>{
+    if(!p.static){p.vy=Math.min(p.vy+0.3,5);p.y+=p.vy;for(const pl of plats)if(pl.solid&&ovlp(p,pl)){p.y=pl.y-p.h;p.vy=0;p.static=true;}}
+    p.life--;
+    if(ovlp(p,P)){
+      if(p.type==='coin'){totalCoins++;totalScore+=50;spawnP(p.x,p.y,'#ffd700',5);}
+      else if(p.type==='heart'&&P.hp<P.maxHp){P.hp++;spawnP(p.x,p.y,'#f44',8);}
+      else if(p.type==='shawarma'){totalScore+=300;spawnP(p.x,p.y,'#f90',10);showDlg('\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',JKS[ri(0,JKS.length-1)]);}
+      return false;
+    }
+    return p.life>0;
+  });
+}
+function drawPKUPs(ox,oy){
+  cx.textAlign='center';
+  for(const p of PKUPs){
+    const bob=Math.sin(frameN*0.08+p.x)*3;
+    cx.font='18px serif';
+    cx.fillText(p.type==='coin'?'\uD83E\uDE99':p.type==='heart'?'\u2764\uFE0F':'\uD83C\uDF2F',p.x-ox+p.w/2,p.y-oy+p.h+bob);
+  }
 }
 
-function updateStats() {
-  const hp = Math.max(0, Math.min(100, G.hp));
-  const karma = Math.max(0, Math.min(100, G.karma));
-  const friendship = Math.max(0, Math.min(100, G.friendship));
+// DAMAGE
+function hurtP(amt){if(P.ifr>0)return;P.hp-=amt;P.ifr=90;spawnP(P.x+P.w/2,P.y+P.h/2,'#f55',10);if(P.hp<=0){P.dead=true;P.hp=0;deathMsg=DEATH_UK[ri(0,DEATH_UK.length-1)];}}
+function hurtE(e,amt){e.hp-=amt;e.ifr=20;spawnP(e.x+e.w/2,e.y+e.h/2,'#ff0',6);if(e.hp<=0){e.dead=true;totalScore+=100;mkPkup('coin',e.x+e.w/2-9,e.y);}}
+function checkAtkHit(){
+  if(!P.atk||P.atkT<=8)return;
+  const hb={x:P.face>0?P.x+P.w:P.x-28,y:P.y+4,w:28,h:P.h-8};
+  for(const e of ENMs){if(!e.dead&&e.ifr===0&&ovlp(hb,e))hurtE(e,1);}
+  if(boss&&boss.hp>0&&boss.ifr===0&&ovlp(hb,boss))hurtBoss(1);
+}
 
-  document.getElementById('bar-hp').style.width = hp + '%';
-  document.getElementById('bar-karma').style.width = karma + '%';
-  document.getElementById('bar-friend').style.width = friendship + '%';
-  document.getElementById('val-hp').textContent = hp;
-  document.getElementById('val-karma').textContent = karma;
-  document.getElementById('val-friend').textContent = friendship;
+// JOKES
+const JKS=[
+  '\uD83C\uDF2F \u0426\u044F \u0448\u0430\u0443\u0440\u043C\u0430 \u0441\u043C\u0430\u043A\u0443\u0454 \u044F\u043A \u043F\u0435\u0440\u0435\u043C\u043E\u0433\u0430!',
+  '\uD83D\uDE04 \u041C\u0430\u043C\u0430 \u043D\u0435 \u0434\u0456\u0437\u043D\u0430\u0454\u0442\u044C\u0441\u044F... \u0441\u043F\u043E\u0434\u0456\u0432\u0430\u044E\u0441\u044C',
+  '\uD83D\uDD25 \u0417\u0430 \u0423\u043A\u0440\u0430\u0457\u043D\u0443 \u0456 \u0437\u0430 \u0448\u0430\u0443\u0440\u043C\u0443!',
+  '\uD83D\uDCAA \u042F \u0432\u0456\u0434\u0447\u0443\u0432\u0430\u044E \u0441\u0438\u043B\u0443... \u0456 \u043B\u0435\u0433\u043A\u0435 \u043E\u0442\u0440\u0443\u0454\u043D\u043D\u044F!',
+  '\uD83E\uDDD5 \u041C\u02BC\u044F\u0441\u0430 \u043D\u0435\u043C\u0430\u0454 \u2014 \u0430\u043B\u0435 \u0432\u0441\u0435 \u043E\u0434\u043D\u043E \u0441\u043C\u0430\u0447\u043D\u043E!',
+  '\uD83C\uDFC6 \u0428\u0430\u0443\u0440\u043C\u0430 \u2014 \u0442\u043E \u043D\u0435 \u0457\u0436\u0430, \u0442\u043E \u0441\u043F\u043E\u0441\u0456\u0431 \u0436\u0438\u0442\u0442\u044F!'
+];
 
-  const invBar = document.getElementById('inventory-bar');
-  if (G.inventory.length === 0) {
-    invBar.innerHTML = '<span style="font-size:11px;color:var(--text-dim)">🎒 Инвентарь пуст</span>';
+// LEVELS
+function mp(x,y,w,h,ow){return {x,y,w,h,solid:true,ow:!!ow};}
+function mspk(x,y,w){return {x,y,w,h:14,spike:true};}
+const LVLS=[
+  {name:'\u0420\u0456\u0432\u0435\u043D\u044C 1: \u0411\u0430\u0437\u0430\u0440 \uD83D\uDED2',bg:'#0e0e22',gCol:'#6d3a1a',pCol:'#4a2800',worldW:1250,
+   spawnX:80,spawnY:340,exitX:1140,exitY:330,
+   plats:[mp(0,390,1250,60),mp(200,330,110,16,true),mp(380,285,100,16,true),mp(570,330,110,16,true),mp(750,270,100,16,true),mp(920,320,120,16,true)],
+   spikes:[],
+   enDefs:[{t:'patrol',x:260,y:310,p1:200,p2:310},{t:'patrol',x:430,y:265,p1:380,p2:480},{t:'shooter',x:680,y:310,p1:570,p2:680},{t:'strong',x:870,y:250,p1:750,p2:920}],
+   coins:[{x:225,y:298},{x:410,y:252},{x:600,y:298},{x:780,y:237}],
+   hearts:[{x:490,y:348}],
+   bossIdx:0,
+   intro:[{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\uD83C\uDF2F \u041B\u0435\u0433\u0435\u043D\u0434\u0430\u0440\u043D\u0430 \u0428\u0430\u0443\u0440\u043C\u0430 \u0434\u0435\u0441\u044C \u043D\u0430 \u0446\u044C\u043E\u043C\u0443 \u0431\u0430\u0437\u0430\u0440\u0456! \u0412\u043F\u0435\u0440\u0435\u0434!'}],
+   bossIntro:[{spk:'\uD83D\uDC75 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F',txt:'\u041A\u0443\u0434\u0438 \u043F\u0440\u0435\u0448\u0435\u0448\u0441\u044F, \u0445\u043B\u043E\u043F\u0447\u0438\u043A\u0443? \u0426\u0435 \u041C\u0406\u0419 \u0431\u0430\u0437\u0430\u0440!'},{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\u041C\u0435\u043D\u0456 \u043F\u043E\u0442\u0440\u0456\u0431\u043D\u0430 \u0448\u0430\u0443\u0440\u043C\u0430, \u0431\u0430\u0431\u0443\u0441\u044E!'},{spk:'\uD83D\uDC75 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F',txt:'\u042F \u0442\u043E\u0431\u0456 \u0434\u0430\u043C "\u0431\u0430\u0431\u0443\u0441\u044E"! \u041E\u0442\u0440\u0438\u043C\u0443\u0439 \u043A\u043E\u0448\u0438\u043A\u0430! \uD83E\uDDF4'}],
+   bossDefeat:'\uD83D\uDC75 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F: "\u041E\u0439, \u043A\u043E\u043B\u0456\u043D\u043E... \u041C\u043E\u043B\u043E\u0434\u044C \u043D\u0438\u043D\u0456\u0448\u043D\u044F \u0431\u0435\u0437 \u043F\u043E\u0432\u0430\u0433\u0438... \uD83D\uDE24"'},
+  {name:'\u0420\u0456\u0432\u0435\u043D\u044C 2: \u0428\u043A\u043E\u043B\u0430 \uD83C\uDFEB',bg:'#071520',gCol:'#546E7A',pCol:'#37474F',worldW:1450,
+   spawnX:80,spawnY:340,exitX:1340,exitY:320,
+   plats:[mp(0,390,1450,60),mp(160,330,110,16,true),mp(340,290,90,16,true),mp(510,250,100,16,true),mp(680,290,90,16,true),mp(850,330,120,16,true),mp(1020,265,100,16,true),mp(1180,310,120,16,true)],
+   spikes:[mspk(440,390,70),mspk(760,390,70),mspk(1080,390,70)],
+   enDefs:[{t:'patrol',x:200,y:310,p1:160,p2:270},{t:'patrol',x:385,y:270,p1:340,p2:430},{t:'strong',x:565,y:230,p1:510,p2:610},{t:'shooter',x:725,y:270,p1:680,p2:770},{t:'strong',x:900,y:310,p1:850,p2:970},{t:'shooter',x:1065,y:245,p1:1020,p2:1120}],
+   coins:[{x:190,y:298},{x:370,y:258},{x:540,y:218},{x:710,y:258},{x:880,y:298},{x:1050,y:232}],
+   hearts:[{x:700,y:248}],
+   bossIdx:1,
+   intro:[{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\u0428\u043A\u043E\u043B\u0430... \u0422\u0456\u043B\u044C\u043A\u0438 \u043D\u0435 \u0446\u0435! \u0410\u043B\u0435 \u0448\u0430\u0443\u0440\u043C\u0430 \u0447\u0435\u043A\u0430\u0454!'}],
+   bossIntro:[{spk:'\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u041F\u0443\u0437\u0430\u0442\u0438\u0439',txt:'\u041F\u0438\u043B\u0438\u043F\u044E\u043A! \u0417\u043D\u043E\u0432\u0443 \u043F\u0440\u043E\u0433\u0443\u043B\u044E\u0454\u0448 \u0443\u0440\u043E\u043A\u0438?!'},{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\u042F \u043D\u0435 \u043F\u0440\u043E\u0433\u0443\u043B\u044E\u044E \u2014 \u044F \u0440\u044F\u0442\u0443\u044E \u0448\u0430\u0443\u0440\u043C\u0443!'},{spk:'\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u041F\u0443\u0437\u0430\u0442\u0438\u0439',txt:'\u0412 \u043C\u0456\u0439 \u043A\u0430\u0431\u0456\u043D\u0435\u0442! \u0422\u0423\u041F\u041E\u0422\u0410\u041D\u041D\u042F \u0420\u041E\u0417\u041F\u041E\u0427\u0410\u0422\u041E! \uD83D\uDCA2'}],
+   bossDefeat:'\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440: "\u0414\u0435 \u043C\u0456\u0439 \u0436\u0443\u0440\u043D\u0430\u043B... \u0434\u0435 \u043C\u0456\u0439 \u0434\u0438\u043A\u0442\u043E\u0444\u043E\u043D... \uD83D\uDE35"'},
+  {name:'\u0420\u0456\u0432\u0435\u043D\u044C 3: \u0417\u0430\u0432\u043E\u0434 \u0428\u0430\u0443\u0440\u043C\u0438 \uD83C\uDFED',bg:'#160800',gCol:'#3a1f00',pCol:'#5a3000',worldW:1350,
+   spawnX:80,spawnY:340,exitX:1240,exitY:330,
+   plats:[mp(0,390,1350,60),mp(180,340,100,16,true),mp(350,300,90,16,true),mp(530,260,100,16,true),mp(710,300,90,16,true),mp(890,340,110,16,true),mp(1060,285,120,16,true)],
+   spikes:[mspk(290,390,80),mspk(630,390,90),mspk(980,390,80)],
+   enDefs:[{t:'strong',x:220,y:320,p1:180,p2:280},{t:'shooter',x:400,y:280,p1:350,p2:440},{t:'strong',x:580,y:240,p1:530,p2:630},{t:'patrol',x:755,y:280,p1:710,p2:800},{t:'strong',x:940,y:320,p1:890,p2:1000},{t:'shooter',x:1100,y:265,p1:1060,p2:1180}],
+   coins:[{x:200,y:308},{x:375,y:268},{x:555,y:228},{x:730,y:268},{x:910,y:308},{x:1085,y:252}],
+   hearts:[{x:895,y:298}],
+   bossIdx:2,
+   intro:[{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\u0422\u0443\u0442 \u043F\u0430\u0445\u043D\u0435 \u0448\u0430\u0443\u0440\u043C\u043E\u044E... \u0456 \u043D\u0435\u0431\u0435\u0437\u043F\u0435\u043A\u043E\u044E! \uD83C\uDF2F\uD83C\uDFED'}],
+   bossIntro:[{spk:'\uD83C\uDF2F \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D',txt:'\u0425\u0410-\u0425\u0410-\u0425\u0410! \u0422\u0438 \u0434\u0456\u0439\u0448\u043E\u0432, \u041F\u0438\u043B\u0438\u043F\u044E\u043A\u0443!'},{spk:'\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',txt:'\u0412\u0456\u0434\u0434\u0430\u0439 \u041B\u0435\u0433\u0435\u043D\u0434\u0430\u0440\u043D\u0443 \u0428\u0430\u0443\u0440\u043C\u0443 \u043D\u0435\u0433\u0430\u0439\u043D\u043E!'},{spk:'\uD83C\uDF2F \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D',txt:'\u041D\u0406\u041A\u041E\u041B\u0418! \u0426\u044F \u0448\u0430\u0443\u0440\u043C\u0430 \u041C\u041E\u042F! \u0411\u041E\u0419\u041E\u0412\u0418\u0419 \u0420\u0415\u0416\u0418\u041C! \uD83D\uDD25\uD83C\uDF2F\uD83D\uDD25'}],
+   bossDefeat:'\uD83C\uDF2F \u0428\u0430\u0443\u0440\u043C\u0435\u043D: "\u041D\u0435\u043C\u043E\u0436\u043B\u0438\u0432\u043E... \u043C\u043E\u044F \u0428\u0430\u0443\u0440\u043C\u0430... \u043F\u0440\u043E\u0433\u0440\u0430\u043B\u0430... \uD83D\uDE31"'}
+];
+
+let curL=null,lvlPlats=[],lvlSpikes=[],camX=0,camY=0;
+const exitDoor={x:0,y:0,w:38,h:56};
+function loadLevel(idx){
+  const L=LVLS[idx];curL=L;lvlPlats=[...L.plats];lvlSpikes=L.spikes||[];
+  ENMs=[];PROJs=[];PKUPs=[];parts=[];
+  for(const ed of L.enDefs)ENMs.push(mkEnm(ed.t,ed.x,ed.y,ed.p1,ed.p2));
+  for(const c of L.coins)PKUPs.push({type:'coin',x:c.x,y:c.y,w:18,h:18,vy:0,life:999999,static:true});
+  for(const h of (L.hearts||[]))PKUPs.push({type:'heart',x:h.x,y:h.y,w:18,h:18,vy:0,life:999999,static:true});
+  exitDoor.x=L.exitX;exitDoor.y=L.exitY-exitDoor.h+16;
+  resetP(L.spawnX,L.spawnY);camX=0;camY=0;dlg=null;dlgQ=[];
+  for(const l of L.intro)qDlg(l.spk,l.txt,190);
+}
+function drawLevel(ox,oy){
+  const L=curL;
+  const g=cx.createLinearGradient(0,0,0,GH);g.addColorStop(0,L.bg);g.addColorStop(1,'#000');
+  cx.fillStyle=g;cx.fillRect(0,0,GW,GH);
+  cx.fillStyle='rgba(255,255,255,0.55)';
+  for(let i=0;i<35;i++){const sx=((i*131+60)%L.worldW-ox)*0.25,sy=(i*83)%220;if(sx>-3&&sx<GW+3)cx.fillRect(sx,sy,1+(i%2),1+(i%2));}
+  for(const p of lvlPlats){
+    const px=p.x-ox,py=p.y-oy;if(px>GW+20||px+p.w<-20)continue;
+    if(p.ow){cx.fillStyle=L.pCol||'#5D4037';cx.fillRect(px,py,p.w,p.h);cx.fillStyle='rgba(255,255,200,0.25)';cx.fillRect(px,py,p.w,4);}
+    else{cx.fillStyle=L.gCol||'#6d3a1a';cx.fillRect(px,py,p.w,p.h);cx.fillStyle='#2ecc71';cx.fillRect(px,py,p.w,6);}
+  }
+  for(const s of lvlSpikes){
+    const sx=s.x-ox,sy=s.y-oy;if(sx>GW||sx+s.w<0)continue;
+    cx.fillStyle='#e74c3c';
+    for(let i=0;i<Math.floor(s.w/16);i++){cx.beginPath();cx.moveTo(sx+i*16,sy+s.h);cx.lineTo(sx+i*16+8,sy);cx.lineTo(sx+i*16+16,sy+s.h);cx.closePath();cx.fill();}
+  }
+  const ex=exitDoor.x-ox,ey=exitDoor.y-oy;
+  cx.fillStyle='#1a7a40';cx.fillRect(ex,ey,exitDoor.w,exitDoor.h);
+  cx.fillStyle='#2ecc71';cx.fillRect(ex+3,ey+3,exitDoor.w-6,exitDoor.h-6);
+  cx.font='24px serif';cx.textAlign='center';cx.fillText('\uD83D\uDEAA',ex+exitDoor.w/2,ey+exitDoor.h-6);
+  const pulse=Math.sin(frameN*0.1)*4;
+  cx.fillStyle='#2ecc71';cx.font='18px serif';cx.fillText('\u25B2',ex+exitDoor.w/2,ey-8+pulse);
+}
+function updateCam(){const tx=P.x+P.w/2-GW/2,mxX=Math.max(0,(curL?curL.worldW:GW)-GW);camX+=(clamp(tx,0,mxX)-camX)*0.12;camY=0;}
+
+// BOSS
+let boss=null,bossState='intro',bossWaiting=false;
+const BOSS_ARENA=[mp(0,GH-60,GW,60),mp(0,0,18,GH),mp(GW-18,0,18,GH),mp(0,0,GW,18),mp(90,GH-170,120,16,true),mp(GW/2-65,GH-210,130,16,true),mp(GW-210,GH-170,120,16,true)];
+const BOSS_DEFS=[
+  {name:'\uD83D\uDC75 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F',emoji:'\uD83D\uDC75',w:46,h:62,hp:12,maxHp:12,col:'#8e44ad',hCol:'#f0c080',speed:1.9,baseCD:65,
+   atks:[
+     b=>{for(let i=-1;i<=1;i++){const a=Math.atan2(P.y-b.y,P.x-b.x)+i*0.35;mkProj(b.x+b.w/2,b.y+b.h/2,Math.cos(a)*4.2,Math.sin(a)*4.2,true,1,'#e74c3c',true);}},
+     b=>{b.charging=true;b.chT=32;b.chVX=Math.sign(P.x-b.x)*9;showDlg('\uD83D\uDC75 \u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F',['\uD83E\uDDF4 \u0417\u0430\u0440\u0430\u0437 \u043E\u0442\u0440\u0438\u043C\u0430\u0454\u0448 \u043A\u043E\u0448\u0438\u043A\u043E\u043C!','\u0421\u0442\u043E\u044F\u0442\u044C, \u0437\u043B\u043E\u0434\u0456\u044E!','\u041E\u0439-\u043E\u0439-\u043E\u0439!'][ri(0,2)]);}
+   ]},
+  {name:'\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u041F\u0443\u0437\u0430\u0442\u0438\u0439',emoji:'\uD83D\uDC68\u200D\uD83D\uDCBC',w:56,h:74,hp:18,maxHp:18,col:'#2c3e50',hCol:'#f0c080',speed:1.0,baseCD:90,
+   atks:[
+     b=>{if(b.onGr){spawnP(b.x+b.w/2,b.y+b.h,'#f90',18);mkProj(b.x-8,b.y+b.h-12,-5,0,true,1,'#f5a623');mkProj(b.x+b.w+8,b.y+b.h-12,5,0,true,1,'#f5a623');}},
+     b=>{const dx=P.x-b.x;mkProj(b.x+b.w/2,b.y+b.h*0.3,Math.sign(dx)*5,-4.5,true,1,'#3498db',true);showDlg('\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440',['\uD83D\uDCCB \u0414\u043E \u0434\u0438\u0440\u0435\u043A\u0442\u043E\u0440\u0430!','\u041E\u0446\u0456\u043D\u043A\u0443 1 \u0442\u043E\u0431\u0456!','\u0411\u0430\u0442\u044C\u043A\u0456\u0432 \u0443 \u0448\u043A\u043E\u043B\u0443!'][ri(0,2)]);},
+     b=>{if(ENMs.filter(e=>!e.dead).length<4){ENMs.push(mkEnm('patrol',85,GH-94,60,270));ENMs.push(mkEnm('patrol',GW-113,GH-94,530,740));showDlg('\uD83D\uDC68\u200D\uD83D\uDCBC \u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440','\uD83D\uDCDA \u0423\u0447\u043D\u0456, \u0437\u0430 \u043C\u043D\u043E\u044E!');}}
+   ]},
+  {name:'\uD83C\uDF2F \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D',emoji:'\uD83D\uDC68\u200D\uD83C\uDF73',w:64,h:82,hp:25,maxHp:25,col:'#e67e22',hCol:'#f0c080',speed:1.4,baseCD:55,
+   atks:[
+     b=>{for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;mkProj(b.x+b.w/2,b.y+b.h/2,Math.cos(a)*4,Math.sin(a)*4,true,1,'#f90');}},
+     b=>{const dx=P.x-b.x,dy=P.y-b.y,len=Math.sqrt(dx*dx+dy*dy)||1;for(let i=0;i<3;i++)setTimeout(()=>{if(!boss||boss.hp<=0)return;mkProj(b.x+b.w/2,b.y+b.h/2,(dx/len)*5.5,(dy/len)*5.5,true,1,'#e67e22');},i*140);showDlg('\uD83C\uDF2F \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D',['\uD83C\uDF2F \u0428\u0410\u0423\u0420\u041C\u0410 \u0412 \u041E\u0411\u041B\u0418\u0427\u0427\u042F!','\u0422\u0438 \u043D\u0456\u0447\u043E\u0433\u043E \u043D\u0435 \u0437\u043D\u0430\u0454\u0448 \u043F\u0440\u043E \u0448\u0430\u0443\u0440\u043C\u0443!','\u041C\u041E\u042F \u0448\u0430\u0443\u0440\u043C\u0430!'][ri(0,2)]);},
+     b=>{b.vy=JUMP*0.9;spawnP(b.x+b.w/2,b.y+b.h,'#f90',16);showDlg('\uD83C\uDF2F \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D','\u0421\u0422\u0420\u0418\u0411\u0410\u042E! \uD83D\uDCA5');}
+   ]}
+];
+function startBoss(idx){
+  const bd=BOSS_DEFS[idx];
+  boss={name:bd.name,emoji:bd.emoji,w:bd.w,h:bd.h,hp:bd.hp,maxHp:bd.maxHp,col:bd.col,hCol:bd.hCol,speed:bd.speed,baseCD:bd.baseCD,atks:bd.atks,
+        x:GW/2-bd.w/2,y:GH-60-bd.h,vx:0,vy:0,onGr:false,ifr:0,timer:0,atkT:0,phase:0,charging:false,chT:0,chVX:0,dead:false};
+  bossState='intro';bossWaiting=false;
+  ENMs=[];PROJs=[];PKUPs=[];parts=[];
+  lvlPlats=BOSS_ARENA;lvlSpikes=[];
+  resetP(80,GH-100);camX=0;camY=0;dlg=null;dlgQ=[];
+  for(const l of LVLS[lvlIdx].bossIntro)qDlg(l.spk,l.txt,210);
+}
+function tickBoss(){
+  if(!boss||boss.dead||bossWaiting)return;
+  if(bossState==='intro'){if(!dlg&&dlgQ.length===0)bossState='fight';return;}
+  boss.timer++;if(boss.ifr>0)boss.ifr--;if(boss.atkT>0)boss.atkT--;
+  if(boss.hp<=boss.maxHp*0.5&&boss.phase===0){boss.phase=1;boss.speed*=1.35;showDlg(boss.name,'\uD83D\uDCA2 \u0420\u0415\u0416\u0418\u041C \u041B\u042E\u0422\u0406 \u0410\u041A\u0422\u0418\u0412\u041E\u0412\u0410\u041D\u041E!');spawnP(boss.x+boss.w/2,boss.y+boss.h/2,'#f55',20);}
+  if(boss.hp<=boss.maxHp*0.25&&boss.phase===1){boss.phase=2;boss.speed*=1.2;showDlg(boss.name,'\uD83D\uDD25 \u0426\u0415 \u0410\u0411\u0421\u041E\u041B\u042E\u0422\u041D\u0418\u0419 \u041A\u0406\u041D\u0415\u0426!!!');}
+  if(boss.charging){boss.vx=boss.chVX;boss.chT--;if(boss.chT<=0){boss.charging=false;boss.vx=0;}}
+  else{const dx=(P.x+P.w/2)-(boss.x+boss.w/2);if(Math.abs(dx)>55)boss.vx=Math.sign(dx)*boss.speed*(1+boss.phase*0.4);else boss.vx*=0.8;}
+  if(P.y<boss.y-50&&boss.onGr)boss.vy=JUMP*0.82;
+  boss.vy=Math.min(boss.vy+GRAV*0.8,14);
+  boss.x+=boss.vx;colX(boss,lvlPlats);boss.y+=boss.vy;boss.onGr=false;colY(boss,lvlPlats);
+  boss.x=clamp(boss.x,20,GW-20-boss.w);
+  if(boss.atkT===0){boss.atks[ri(0,boss.atks.length-1)](boss);boss.atkT=Math.max(28,boss.baseCD-boss.phase*16);}
+  if(P.ifr===0&&ovlp(boss,P)){hurtP(1);P.vx=Math.sign(P.x-boss.x)*6;P.vy=-6;}
+}
+function hurtBoss(amt){
+  if(!boss||boss.hp<=0||boss.dead)return;
+  boss.hp-=amt;boss.ifr=24;spawnP(boss.x+boss.w/2,boss.y+boss.h/2,'#ff0',8);
+  if(boss.hp<=0){boss.hp=0;boss.dead=true;bossWaiting=true;totalScore+=1000;spawnP(boss.x+boss.w/2,boss.y+boss.h/2,'#ff0',35);
+    showDlg(boss.name,LVLS[lvlIdx].bossDefeat);
+    setTimeout(()=>{if(lvlIdx===2){STATE='win';}else{mgIdx=lvlIdx;startMG(lvlIdx);STATE='minigame';}},2800);}
+}
+function drawBoss(){
+  if(!boss||boss.dead)return;if(boss.ifr>0&&Math.floor(boss.ifr/4)%2)return;
+  const sx=boss.x,sy=boss.y;
+  cx.fillStyle='rgba(0,0,0,0.4)';cx.beginPath();cx.ellipse(sx+boss.w/2,GH-63,boss.w*0.6,6,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle=boss.col;cx.fillRect(sx,sy+boss.h*0.35,boss.w,boss.h*0.65);
+  cx.fillStyle=boss.hCol;cx.fillRect(sx+boss.w*0.1,sy,boss.w*0.8,boss.h*0.38);
+  cx.font=Math.floor(boss.h*0.33)+'px serif';cx.textAlign='center';cx.fillText(boss.emoji,sx+boss.w/2,sy+boss.h*0.36);
+  const bx=GW/2-200,by=22,bw=400,bh=18;
+  cx.fillStyle='rgba(0,0,0,0.7)';cx.fillRect(bx-2,by-2,bw+4,bh+4);
+  cx.fillStyle='#333';cx.fillRect(bx,by,bw,bh);
+  const fr=boss.hp/boss.maxHp;
+  cx.fillStyle=fr>0.5?'#2ecc71':fr>0.25?'#f5a623':'#e74c3c';cx.fillRect(bx,by,Math.max(0,bw*fr)|0,bh);
+  cx.fillStyle='#fff';cx.font='bold 11px "Segoe UI",sans-serif';cx.textAlign='center';
+  cx.fillText(boss.name+' \u2764\uFE0F '+boss.hp+'/'+boss.maxHp,GW/2,by+13);
+}
+
+// MINI-GAMES
+let mg=null,mgIdx=0;
+function startMG(idx){
+  dlg=null;dlgQ=[];
+  if(idx===0){
+    mg={type:'catch',timer:1800,caught:0,items:[],spawnT:0,basket:{x:GW/2-30,y:GH-90,w:60,h:40},msg:'',msgT:0,done:false};
+    showDlg('\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A','\u041F\u0430\u0434\u0430\u044E\u0442\u044C \u0448\u0430\u0443\u0440\u043C\u0438! \u2B05\uFE0F/\u27A1\uFE0F \u0449\u043E\u0431 \u043B\u043E\u0432\u0438\u0442\u0438! \u0423\u043D\u0438\u043A\u0430\u0439 \u0431\u043E\u043C\u0431! \uD83C\uDF2F\uD83D\uDCA3');
   } else {
-    invBar.innerHTML = G.inventory.map(item =>
-      `<span class="inv-item">${item}</span>`
-    ).join('');
+    const btns=[
+      {key:'ArrowLeft',lbl:'\u2B05\uFE0F',x:GW/2-145,y:GH/2-10,col:'#3498db'},
+      {key:'ArrowRight',lbl:'\u27A1\uFE0F',x:GW/2+85,y:GH/2-10,col:'#2ecc71'},
+      {key:'ArrowUp',lbl:'\u2B06\uFE0F',x:GW/2-30,y:GH/2-95,col:'#e74c3c'},
+      {key:'ArrowDown',lbl:'\u2B07\uFE0F',x:GW/2-30,y:GH/2+55,col:'#9b59b6'},
+    ];
+    mg={type:'simon',round:1,maxR:5,seq:[],phase:'show',showIdx:0,showT:50,inputIdx:0,flashKey:'',flashT:0,btns,done:false,fails:0};
+    genSimon();
+    showDlg('DJ \u0412\u0430\u0441\u044F \uD83C\uDFA7','\u041F\u043E\u0432\u0442\u043E\u0440\u0438 \u0442\u0430\u043D\u0435\u0446\u044C! \u0414\u0438\u0432\u0438\u0441\u044C \u0456 \u043D\u0430\u0442\u0438\u0441\u043A\u0430\u0439 \u0441\u0442\u0440\u0456\u043B\u043A\u0438 \u0443 \u0442\u043E\u043C\u0443 \u0436 \u043F\u043E\u0440\u044F\u0434\u043A\u0443! \uD83D\uDD7A');
   }
 }
-
-function applyChoiceEffects(choice) {
-  if (choice.karma) { G.karma = Math.max(0, Math.min(100, G.karma + choice.karma)); }
-  if (choice.friendship) { G.friendship = Math.max(0, Math.min(100, G.friendship + choice.friendship)); }
-  if (choice.hp) { G.hp = Math.max(0, Math.min(100, G.hp + choice.hp)); }
-  if (choice.addItem && !G.inventory.includes(choice.addItem)) G.inventory.push(choice.addItem);
-  if (choice.addItem2 && !G.inventory.includes(choice.addItem2)) G.inventory.push(choice.addItem2);
-  if (choice.addItem3 && !G.inventory.includes(choice.addItem3)) G.inventory.push(choice.addItem3);
-  updateStats();
+function genSimon(){
+  if(!mg||mg.type!=='simon')return;
+  const dirs=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  if(mg.round===1)mg.seq=[];
+  mg.seq.push(dirs[ri(0,3)]);
+  mg.phase='show';mg.showIdx=0;mg.showT=55;mg.inputIdx=0;
 }
-
-// ============================================================
-// SCENE RENDERING
-// ============================================================
-async function renderScene(sceneKey) {
-  G.scene = sceneKey;
-  const scene = SCENES[sceneKey];
-  if (!scene) { console.error('Scene not found:', sceneKey); return; }
-
-  // Handle endings
-  if (scene.isEnding) {
-    showEnding(scene);
-    return;
-  }
-
-  // Update chapter label
-  document.getElementById('chapter-label').textContent = scene.chapter || '';
-
-  // Clear areas
-  const sceneArea = document.getElementById('scene-area');
-  const choicesArea = document.getElementById('choices-area');
-  sceneArea.innerHTML = '';
-  choicesArea.innerHTML = '';
-
-  // Scene header
-  const header = document.createElement('div');
-  header.className = 'scene-header';
-  header.innerHTML = `
-    <span class="scene-emoji">${scene.emoji}</span>
-    <div class="scene-title">${scene.title}</div>
-    <div class="scene-location">${scene.location || ''}</div>
-  `;
-  sceneArea.appendChild(header);
-
-  // Dialogue
-  if (scene.dialogue && scene.dialogue.length > 0) {
-    for (const line of scene.dialogue) {
-      const char = CHARS[line.char] || CHARS.narrator;
-      const box = document.createElement('div');
-      box.className = `dialogue-box ${char.cls}`;
-
-      if (line.char === 'narrator') {
-        box.innerHTML = `<div class="dialogue-text narrator"></div>`;
-        sceneArea.appendChild(box);
-        const textEl = box.querySelector('.dialogue-text');
-        await typeText(textEl, line.text, 12);
-        await sleep(200);
-      } else {
-        box.innerHTML = `
-          <div class="dialogue-speaker">
-            <div class="speaker-avatar">${char.emoji}</div>
-            <div>
-              <div class="speaker-name">${char.name}</div>
-              <div class="speaker-role">${char.role}</div>
-            </div>
-          </div>
-          <div class="dialogue-text"></div>
-        `;
-        sceneArea.appendChild(box);
-        const textEl = box.querySelector('.dialogue-text');
-        await typeText(textEl, line.text, 14);
-        await sleep(150);
+const SIMLBL={ArrowLeft:'\u2B05\uFE0F',ArrowRight:'\u27A1\uFE0F',ArrowUp:'\u2B06\uFE0F',ArrowDown:'\u2B07\uFE0F'};
+function tickMG(){
+  if(!mg||mg.done)return;
+  if(mg.type==='catch'){
+    mg.timer--;
+    if(mg.timer<=0||mg.caught>=10){
+      mg.done=true;const ok=mg.caught>=5;
+      showDlg('\uD83D\uDE0E \u041F\u0438\u043B\u0438\u043F\u044E\u043A',ok?'\u0417\u043B\u043E\u0432\u0438\u0432 '+mg.caught+' \u0448\u0430\u0443\u0440\u043C! \u0411\u043E\u043D\u0443\u0441 \u2014 \u0441\u0435\u0440\u0446\u0435! \u2764\uFE0F':'\u041B\u0438\u0448\u0435 '+mg.caught+'... \u0422\u0440\u0435\u043D\u0443\u0439\u0441\u044F \u0431\u0456\u043B\u044C\u0448\u0435 \uD83D\uDE05');
+      if(ok)P.hp=Math.min(P.maxHp,P.hp+1);
+      totalScore+=mg.caught*100;
+      setTimeout(()=>{lvlIdx++;loadLevel(lvlIdx);STATE='play';dlg=null;dlgQ=[];},2800);return;
+    }
+    mg.spawnT++;
+    if(mg.spawnT>=Math.max(22,65-mg.caught*5)){mg.spawnT=0;mg.items.push({x:ri(30,GW-55),y:-22,vy:2+rng(0,2),w:20,h:20,bomb:ri(0,5)===0});}
+    mg.items=mg.items.filter(it=>{
+      it.y+=it.vy;it.vy+=0.04;
+      if(ovlp(it,mg.basket)){if(!it.bomb){mg.caught++;spawnP(it.x,it.y,'#f90',8);mg.msg='\uD83C\uDF2F +1!';mg.msgT=45;}else{hurtP(1);spawnP(it.x,it.y,'#f55',8);mg.msg='\uD83D\uDCA3 \u0410\u0439!';mg.msgT=45;}return false;}
+      return it.y<GH+25;
+    });
+    if(K['ArrowLeft']||K['KeyA'])mg.basket.x=Math.max(0,mg.basket.x-6);
+    if(K['ArrowRight']||K['KeyD'])mg.basket.x=Math.min(GW-mg.basket.w,mg.basket.x+6);
+    if(mg.msgT>0)mg.msgT--;
+  } else if(mg.type==='simon'){
+    if(mg.phase==='show'){
+      mg.showT--;
+      if(mg.showT<=0){mg.showIdx++;if(mg.showIdx>=mg.seq.length){mg.phase='input';showDlg('DJ \u0412\u0430\u0441\u044F \uD83C\uDFA7','\u0422\u0435\u043F\u0435\u0440 \u0442\u0438! \u041F\u043E\u0432\u0442\u043E\u0440\u0438: '+mg.seq.map(k=>SIMLBL[k]).join(' '));}else{mg.flashKey=mg.seq[mg.showIdx];mg.flashT=40;mg.showT=52;}}
+      else if(mg.showIdx===0&&mg.showT===54){mg.flashKey=mg.seq[0];mg.flashT=40;}
+      if(mg.flashT>0)mg.flashT--;
+    } else if(mg.phase==='input'){
+      const dirs=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+      for(const d of dirs){
+        if(KP[d]){
+          mg.flashKey=d;mg.flashT=18;
+          if(d===mg.seq[mg.inputIdx]){
+            mg.inputIdx++;spawnP(GW/2+rng(-50,50),GH/2+rng(-50,50),'#2ecc71',5);
+            if(mg.inputIdx>=mg.seq.length){
+              if(mg.round>=mg.maxR){mg.done=true;showDlg('DJ \u0412\u0430\u0441\u044F \uD83C\uDFA7','\u0411\u0420\u0410\u0412\u041E! \u0422\u0438 \u0441\u043F\u0440\u0430\u0432\u0436\u043D\u0456\u0439 \u0442\u0430\u043D\u0446\u044E\u0440\u0438\u0441\u0442! \uD83C\uDFC6 +500 \u043E\u0447\u043E\u043A!');totalScore+=500;setTimeout(()=>{lvlIdx++;loadLevel(lvlIdx);STATE='play';dlg=null;dlgQ=[];},2800);}
+              else{mg.round++;showDlg('DJ \u0412\u0430\u0441\u044F \uD83C\uDFA7','\u0427\u0443\u0434\u043E\u0432\u043E! \u0420\u0430\u0443\u043D\u0434 '+mg.round+'/'+mg.maxR+'! \u0414\u0438\u0432\u0438\u0441\u044C...');setTimeout(()=>genSimon(),1600);}
+            }
+          } else {
+            mg.fails++;hurtP(1);
+            showDlg('DJ \u0412\u0430\u0441\u044F \uD83C\uDFA7','\u041D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E! \u041F\u043E\u0432\u0442\u043E\u0440\u044E\u0454\u043C\u043E \u0440\u0430\u0443\u043D\u0434 '+mg.round+' \uD83D\uDE2C');
+            mg.seq=mg.seq.slice(0,mg.round);setTimeout(()=>genSimon(),1800);
+          }
+          break;
+        }
       }
-      sceneArea.scrollTop = sceneArea.scrollHeight;
     }
   }
-
-  // Handle QTE scenes
-  if (scene.isQTE) {
-    await sleep(500);
-    startQTE(scene);
-    return;
-  }
-
-  // Render choices
-  renderChoices(scene.choices);
 }
-
-function renderChoices(choices) {
-  const area = document.getElementById('choices-area');
-  area.innerHTML = '';
-  if (!choices || choices.length === 0) return;
-
-  const title = document.createElement('div');
-  title.className = 'choices-title';
-  title.textContent = '— Что делать? —';
-  area.appendChild(title);
-
-  choices.forEach((choice, idx) => {
-    const btn = document.createElement('button');
-    btn.className = `btn btn-choice btn-${choice.type || 'neutral'}`;
-
-    let label = '';
-    if (choice.karma > 0) label = '✨ Хорошо для кармы';
-    else if (choice.karma < 0) label = '🔴 Плохо для кармы';
-    else if (choice.type === 'secret') label = '🔮 Секретный вариант';
-    else label = '🔵 Нейтральный выбор';
-
-    btn.innerHTML = `<span class="choice-label">${label}</span>${choice.text}`;
-    btn.onclick = () => makeChoice(choice);
-    area.appendChild(btn);
-  });
-}
-
-// ============================================================
-// CHOICE HANDLING
-// ============================================================
-function makeChoice(choice) {
-  G.choices.push(choice.text);
-  applyChoiceEffects(choice);
-
-  // Special flags
-  if (choice.next === 'shop_pay') G.paid = true;
-  if (choice.next === 'shop_stolen') G.stolen = true;
-  if (choice.next === 'park_fight_qte') G.foughtGoose = true;
-  if (choice.next === 'park_negotiate') G.negotiatedGoose = true;
-
-  // Check for HP death
-  if (G.hp <= 0) {
-    renderScene('ending_bad');
-    return;
-  }
-
-  // Secret ending trigger: low karma and have key
-  if (choice.next === 'fight_final_choice' && G.karma < 20) {
-    renderScene('ending_secret');
-    return;
-  }
-
-  // Dream ending trigger: if player negotiated with geese AND has high friendship and karma
-  if (choice.next === 'ending_good' && G.friendship > 80 && G.karma > 70) {
-    if (G.negotiatedGoose || G.choices.filter(c => c.includes('Гусей')).length > 0) {
-      renderScene('ending_dream');
-      return;
+function drawMG(){
+  if(!mg)return;
+  const g=cx.createLinearGradient(0,0,0,GH);g.addColorStop(0,'#050512');g.addColorStop(1,'#0a0a22');
+  cx.fillStyle=g;cx.fillRect(0,0,GW,GH);
+  if(mg.type==='catch'){
+    cx.fillStyle='#f5a623';cx.font='bold 20px "Segoe UI",sans-serif';cx.textAlign='center';
+    cx.fillText('\uD83C\uDF2F \u0417\u041B\u041E\u0412\u0418 \u0428\u0410\u0423\u0420\u041C\u0423! \uD83C\uDF2F',GW/2,36);
+    cx.fillStyle='#ccc';cx.font='14px "Segoe UI",sans-serif';
+    cx.fillText('\u0427\u0430\u0441: '+Math.ceil(mg.timer/60)+'\u0441  |  \u0417\u043B\u043E\u0432\u043B\u0435\u043D\u043E: '+mg.caught+'/10  |  \u0422\u0440\u0435\u0431\u0430: 5+',GW/2,60);
+    cx.fillStyle='#1a1a3a';cx.fillRect(0,GH-60,GW,60);
+    cx.textAlign='center';
+    for(const it of mg.items){cx.font='24px serif';cx.fillText(it.bomb?'\uD83D\uDCA3':'\uD83C\uDF2F',it.x+it.w/2,it.y+it.h);}
+    cx.fillStyle='rgba(245,166,35,0.85)';cx.fillRect(mg.basket.x,mg.basket.y,mg.basket.w,mg.basket.h);
+    cx.font='26px serif';cx.fillText('\uD83E\uDDF4',mg.basket.x+mg.basket.w/2,mg.basket.y+32);
+    if(mg.msgT>0){cx.globalAlpha=mg.msgT/45;cx.fillStyle='#fff';cx.font='bold 22px "Segoe UI",sans-serif';cx.fillText(mg.msg,mg.basket.x+mg.basket.w/2,mg.basket.y-14);cx.globalAlpha=1;}
+    cx.fillStyle='#555';cx.font='12px "Segoe UI",sans-serif';cx.fillText('\u2B05\uFE0F \u27A1\uFE0F \u0430\u0431\u043E A D \u2014 \u0440\u0443\u0445\u0430\u0442\u0438\u0441\u044C',GW/2,GH-8);
+  } else {
+    cx.fillStyle='#f5a623';cx.font='bold 20px "Segoe UI",sans-serif';cx.textAlign='center';
+    cx.fillText('\uD83C\uDFA7 \u041F\u041E\u0412\u0422\u041E\u0420\u0418 \u0422\u0410\u041D\u0415\u0426\u042C! \uD83C\uDFA7',GW/2,40);
+    cx.fillStyle='#aaa';cx.font='14px "Segoe UI",sans-serif';
+    cx.fillText('\u0420\u0430\u0443\u043D\u0434 '+mg.round+'/'+mg.maxR+' | \u0414\u043E\u0432\u0436\u0438\u043D\u0430: '+mg.seq.length,GW/2,65);
+    for(const d of mg.btns){
+      const act=mg.flashKey===d.key&&mg.flashT>0;
+      cx.fillStyle=act?d.col:'rgba(255,255,255,0.12)';rrect(d.x,d.y,60,60,12);cx.fill();
+      cx.strokeStyle=act?'#fff':'rgba(255,255,255,0.25)';cx.lineWidth=2;rrect(d.x,d.y,60,60,12);cx.stroke();
+      cx.font='30px serif';cx.textAlign='center';cx.fillText(d.lbl,d.x+30,d.y+42);
     }
+    if(mg.phase==='show'){cx.fillStyle='#f5a623';cx.font='15px "Segoe UI",sans-serif';cx.textAlign='center';cx.fillText('\uD83D\uDC40 \u0414\u0418\u0412\u0418\u0421\u042C \u0423\u0412\u0410\u0416\u041D\u041E!',GW/2,GH-42);cx.font='20px serif';cx.fillText(mg.seq.slice(0,mg.showIdx+1).map(k=>SIMLBL[k]).join(' '),GW/2,GH-18);}
+    else if(mg.phase==='input'){cx.fillStyle='#2ecc71';cx.font='15px "Segoe UI",sans-serif';cx.textAlign='center';cx.fillText('\u2328\uFE0F \u0422\u0412\u041E\u042F \u0427\u0415\u0420\u0413\u0410! \u041A\u0440\u043E\u043A '+(mg.inputIdx+1)+'/'+mg.seq.length,GW/2,GH-42);}
   }
-
-  renderScene(choice.next);
+  drawHPRow(10,GH-35);drawDlg();
 }
 
-// ============================================================
-// QTE (Quick Time Event)
-// ============================================================
-let qteTimer = null;
-let qteTimeout = null;
-let qteDuration = 3000;
-let qtePressed_ = false;
-let qteCurrentScene = null;
-
-function startQTE(scene) {
-  qteCurrentScene = scene;
-  qtePressed_ = false;
-  qteDuration = scene.qteTime || 3000;
-
-  document.getElementById('qte-title').textContent = scene.qteTitle || '⚡ БЫСТРОЕ ДЕЙСТВИЕ!';
-  document.getElementById('qte-desc').textContent = scene.qteDesc || 'Нажми кнопку!';
-  document.getElementById('qte-btn').textContent = scene.qteEmoji || '🌯';
-  document.getElementById('qte-result').textContent = '';
-
-  const overlay = document.getElementById('qte-overlay');
-  overlay.classList.add('active');
-
-  // Animate timer bar
-  const bar = document.getElementById('qte-timer-bar');
-  bar.style.width = '100%';
-  bar.style.transition = `width ${qteDuration}ms linear`;
-  setTimeout(() => { bar.style.width = '0%'; }, 50);
-
-  // Timeout
-  qteTimeout = setTimeout(() => {
-    if (!qtePressed_) {
-      qteResult(false);
-    }
-  }, qteDuration);
+// HUD
+function drawHPRow(x,y){cx.font='21px serif';cx.textAlign='left';for(let i=0;i<P.maxHp;i++){cx.globalAlpha=i<P.hp?1:0.22;cx.fillText('\u2764\uFE0F',x+i*25,y+18);}cx.globalAlpha=1;}
+function drawHUD(){
+  drawHPRow(10,8);
+  cx.font='bold 14px "Segoe UI",sans-serif';cx.textAlign='left';
+  cx.fillStyle='#ffd700';cx.fillText('\uD83E\uDE99 '+totalCoins,10,46);
+  cx.fillStyle='#fff';cx.fillText('\u2B50 '+totalScore,80,46);
+  cx.fillStyle='rgba(255,255,255,0.5)';cx.font='11px "Segoe UI",sans-serif';cx.textAlign='right';
+  cx.fillText(curL?curL.name:'',GW-8,18);
+  if(frameN<420){cx.fillStyle='rgba(255,255,255,'+(1-frameN/420)*0.6+')';cx.font='11px "Segoe UI",sans-serif';cx.textAlign='center';cx.fillText('\u2B05\uFE0F\u27A1\uFE0F \u0440\u0443\u0445  |  \u041F\u0420\u041E\u0411\u0406\u041B \u0441\u0442\u0440\u0438\u0431\u043E\u043A (2\u00D7)  |  Z \u0443\u0434\u0430\u0440',GW/2,GH-8);}
 }
 
-function qtePressed() {
-  if (qtePressed_) return;
-  qtePressed_ = true;
-  clearTimeout(qteTimeout);
-  qteResult(true);
+// SCREENS
+let menuAnim=0;
+function drawMenu(){
+  menuAnim++;
+  const g=cx.createLinearGradient(0,0,0,GH);g.addColorStop(0,'#0d0d0d');g.addColorStop(0.5,'#1a1a2e');g.addColorStop(1,'#0d0d0d');
+  cx.fillStyle=g;cx.fillRect(0,0,GW,GH);
+  cx.fillStyle='rgba(255,255,255,0.6)';for(let i=0;i<50;i++){cx.fillRect((i*137+menuAnim*0.25)%GW,(i*89)%GH,1+(i%2),1+(i%2));}
+  cx.save();cx.translate(GW/2,GH/2-35);cx.rotate(menuAnim*0.03);cx.font='72px serif';cx.textAlign='center';cx.fillText('\uD83C\uDF2F',0,28);cx.restore();
+  cx.fillStyle='#f5a623';cx.font='bold 36px "Segoe UI",sans-serif';cx.textAlign='center';
+  const bob=Math.sin(menuAnim*0.05)*3;
+  cx.fillText('\uD83C\uDF2F \u041F\u0418\u041B\u0418\u041F\u042E\u041A \uD83C\uDF2F',GW/2,46+bob);
+  cx.fillStyle='#fff';cx.font='bold 17px "Segoe UI",sans-serif';cx.fillText('\u041C\u0415\u0421\u041D\u0418\u041A \u0428\u0410\u0423\u0420\u041C\u0418',GW/2,72+bob);
+  cx.fillStyle='rgba(180,180,180,0.65)';cx.font='12px "Segoe UI",sans-serif';cx.fillText('\u041F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u0435\u0440 v2.0 | \u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430 \u043C\u043E\u0432\u0430 | 3 \u0440\u0456\u0432\u043D\u0456 + 3 \u0431\u043E\u0441\u0438 + 2 \u043C\u0456\u043D\u0456-\u0456\u0433\u0440\u0438',GW/2,93);
+  cx.fillStyle='rgba(255,255,255,0.06)';rrect(GW/2-200,112,400,98,10);cx.fill();
+  cx.strokeStyle='rgba(245,166,35,0.7)';cx.lineWidth=1;rrect(GW/2-200,112,400,98,10);cx.stroke();
+  cx.fillStyle='#ddd';cx.font='13px "Segoe UI",sans-serif';
+  wrapTxt('\u041F\u0438\u043B\u0438\u043F\u044E\u043A \u0445\u043E\u0447\u0435 \u041B\u0435\u0433\u0435\u043D\u0434\u0430\u0440\u043D\u0443 \u0428\u0430\u0443\u0440\u043C\u0443. \u041D\u0430 \u0448\u043B\u044F\u0445\u0443 \u2014 \u0442\u0456\u0442\u043A\u0430 \u0437 \u043A\u043E\u0448\u0438\u043A\u043E\u043C, \u0434\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u0437 \u0436\u0443\u0440\u043D\u0430\u043B\u043E\u043C \u0456 \u0412\u0435\u043B\u0438\u043A\u0438\u0439 \u0428\u0430\u0443\u0440\u043C\u0435\u043D. \u0414\u043E\u043F\u043E\u043C\u043E\u0436\u0438 \u0439\u043E\u043C\u0443!',GW/2-188,130,376,17);
+  cx.fillStyle='rgba(200,200,200,0.7)';cx.font='12px "Segoe UI",sans-serif';cx.fillText('\u2B05\uFE0F\u27A1\uFE0F \u0440\u0443\u0445  |  \u041F\u0420\u041E\u0411\u0406\u041B / \u2B06\uFE0F \u0441\u0442\u0440\u0438\u0431\u043E\u043A (\u043F\u043E\u0434\u0432\u0456\u0439\u043D\u0438\u0439)  |  Z \u0443\u0434\u0430\u0440',GW/2,226);
+  cx.fillStyle='rgba(100,200,100,0.7)';cx.font='12px "Segoe UI",sans-serif';cx.fillText('\uD83D\uDED2 \u0411\u0430\u0437\u0430\u0440  \u279C  \uD83C\uDFEB \u0428\u043A\u043E\u043B\u0430  \u279C  \uD83C\uDFED \u0417\u0430\u0432\u043E\u0434 \u0428\u0430\u0443\u0440\u043C\u0438',GW/2,246);
+  if(Math.floor(menuAnim/28)%2){cx.fillStyle='#2ecc71';cx.font='bold 18px "Segoe UI",sans-serif';cx.fillText('\u25B6  \u041D\u0410\u0422\u0418\u0421\u041D\u0418 \u041F\u0420\u041E\u0411\u0406\u041B / ENTER \u0449\u043E\u0431 \u0433\u0440\u0430\u0442\u0438  \u25C4',GW/2,GH/2+100);}
+  const tips=['\uD83D\uDCA1 \u0414\u0432\u0456\u0447\u0456 \u0441\u0442\u0440\u0438\u0431\u0430\u0439 \u0434\u043B\u044F \u043F\u043E\u0434\u0432\u0456\u0439\u043D\u043E\u0433\u043E \u0441\u0442\u0440\u0438\u0431\u043A\u0430!','\uD83D\uDCA1 \u0423\u0434\u0430\u0440 Z \u043F\u043E\u0448\u043A\u043E\u0434\u0436\u0443\u0454 \u0432\u043E\u0440\u043E\u0433\u0456\u0432 \u0432\u0431\u043B\u0438\u0437\u0456!','\uD83D\uDCA1 \u0421\u0435\u0440\u0446\u044F \u043F\u043E\u043D\u043E\u0432\u043B\u044E\u044E\u0442\u044C \u0437\u0434\u043E\u0440\u043E\u0432\u02BC\u044F!','\uD83D\uDCA1 \u041C\u043E\u043D\u0435\u0442\u0438 \u0434\u0430\u044E\u0442\u044C \u043E\u0447\u043A\u0438!'];
+  cx.fillStyle='rgba(180,180,180,0.5)';cx.font='11px "Segoe UI",sans-serif';cx.fillText(tips[Math.floor(menuAnim/160)%tips.length],GW/2,GH-12);
 }
-
-function qteResult(success) {
-  const resultEl = document.getElementById('qte-result');
-  resultEl.textContent = success ? '✅ УСПЕХ!' : '❌ НЕ УСПЕЛ...';
-  resultEl.style.color = success ? 'var(--green)' : 'var(--red)';
-
-  const bar = document.getElementById('qte-timer-bar');
-  bar.style.transition = 'none';
-
-  setTimeout(() => {
-    document.getElementById('qte-overlay').classList.remove('active');
-    const nextScene = success ? qteCurrentScene.onQTESuccess : qteCurrentScene.onQTEFail;
-    G.qteWin = success;
-    renderScene(nextScene);
-  }, 1000);
+function drawGameOver(){
+  cx.fillStyle='rgba(0,0,0,0.88)';cx.fillRect(0,0,GW,GH);
+  cx.fillStyle='#e74c3c';cx.font='bold 42px "Segoe UI",sans-serif';cx.textAlign='center';cx.fillText('\uD83D\uDC80 \u0413\u0420\u0410 \u0417\u0410\u041A\u0406\u041D\u0427\u0415\u041D\u0410 \uD83D\uDC80',GW/2,GH/2-65);
+  cx.fillStyle='#fff';cx.font='16px "Segoe UI",sans-serif';cx.fillText(deathMsg,GW/2,GH/2-22);
+  cx.fillStyle='#f5a623';cx.font='15px "Segoe UI",sans-serif';cx.fillText('\u041E\u0447\u043A\u0438: '+totalScore+'  |  \u041C\u043E\u043D\u0435\u0442\u0438: \uD83E\uDE99'+totalCoins,GW/2,GH/2+15);
+  cx.fillStyle='#aaa';cx.font='13px "Segoe UI",sans-serif';cx.fillText('\u0420\u0456\u0432\u0435\u043D\u044C '+(lvlIdx+1)+' \u0437 3',GW/2,GH/2+40);
+  if(Math.floor(frameN/28)%2){cx.fillStyle='#2ecc71';cx.font='bold 17px "Segoe UI",sans-serif';cx.fillText('\u25B6  \u041F\u0420\u041E\u0411\u0406\u041B / ENTER \u2014 \u0441\u043F\u0440\u043E\u0431\u0443\u0432\u0430\u0442\u0438 \u0437\u043D\u043E\u0432\u0443  \u25C4',GW/2,GH/2+80);}
+  const tt=['\u041D\u0430\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0443 \u0457\u0436 \u0432\u0434\u043E\u043C\u0430 \uD83C\uDF7D\uFE0F','\u0421\u043F\u0440\u043E\u0431\u0430 \u2014 \u043D\u0435 \u043A\u0430\u0442\u0430\u0441\u0442\u0440\u043E\u0444\u0430! \u041D\u0443 \u043C\u0430\u0439\u0436\u0435 \uD83D\uDE05','\u0428\u0430\u0443\u0440\u043C\u0430 \u0447\u0435\u043A\u0430\u0454 \u043D\u0430 \u0433\u0435\u0440\u043E\u044F \uD83C\uDF2F'];
+  cx.fillStyle='rgba(180,180,180,0.45)';cx.font='12px "Segoe UI",sans-serif';cx.fillText(tt[lvlIdx%tt.length],GW/2,GH-12);
 }
-
-// ============================================================
-// ENDING
-// ============================================================
-function showEnding(scene) {
-  document.getElementById('game').style.display = 'none';
-  const endingEl = document.getElementById('ending');
-  endingEl.style.display = 'flex';
-
-  document.getElementById('ending-emoji').textContent = scene.endingEmoji;
-  document.getElementById('ending-title').textContent = scene.endingTitle;
-  document.getElementById('ending-subtitle').textContent = scene.endingSubtitle;
-
-  const textEl = document.getElementById('ending-text');
-  textEl.textContent = scene.endingText;
-
-  // Stats
-  const statsEl = document.getElementById('ending-stats');
-  const endingLabels = {
-    good: '🏆 Хорошая концовка',
-    bad: '💀 Плохая концовка',
-    secret: '🤡 Секретная концовка',
-    absurd: '😂 Абсурдная концовка',
-  };
-
-  statsEl.innerHTML = `
-    <h3>📊 Итоги приключения</h3>
-    <div class="ending-stat-row"><span>Концовка</span><span style="color:var(--gold)">${endingLabels[scene.endingType] || scene.endingTitle}</span></div>
-    <div class="ending-stat-row"><span>❤️ HP команды</span><span style="color:${G.hp > 50 ? 'var(--green)' : 'var(--red)'}">${G.hp}/100</span></div>
-    <div class="ending-stat-row"><span>✨ Карма</span><span>${G.karma}/100</span></div>
-    <div class="ending-stat-row"><span>🤝 Дружба</span><span>${G.friendship}/100</span></div>
-    <div class="ending-stat-row"><span>🎒 Предметов</span><span>${G.inventory.length}</span></div>
-    <div class="ending-stat-row"><span>🔀 Выборов сделано</span><span>${G.choices.length}</span></div>
-  `;
+function drawWin(){
+  const g=cx.createLinearGradient(0,0,0,GH);g.addColorStop(0,'#0d2200');g.addColorStop(1,'#000');
+  cx.fillStyle=g;cx.fillRect(0,0,GW,GH);
+  for(let i=0;i<60;i++){const x=(i*131+frameN*(i%3+1))%GW,y=(i*89+frameN*(i%2+0.5))%GH;cx.fillStyle=['#f5a623','#2ecc71','#3498db','#e74c3c','#9b59b6'][i%5];cx.fillRect(x,y,4,4);}
+  cx.fillStyle='#f5a623';cx.font='bold 38px "Segoe UI",sans-serif';cx.textAlign='center';cx.fillText('\uD83C\uDF89 \u041F\u0415\u0420\u0415\u041C\u041E\u0413\u0410! \uD83C\uDF89',GW/2,GH/2-100);
+  cx.font='60px serif';cx.fillText('\uD83C\uDF2F',GW/2,GH/2-40+Math.sin(frameN*0.08)*5);
+  cx.fillStyle='#fff';cx.font='bold 20px "Segoe UI",sans-serif';cx.fillText('\u041F\u0438\u043B\u0438\u043F\u044E\u043A \u0437\'\u0457\u0432 \u041B\u0435\u0433\u0435\u043D\u0434\u0430\u0440\u043D\u0443 \u0428\u0430\u0443\u0440\u043C\u0443!',GW/2,GH/2+30);
+  cx.fillStyle='#f5a623';cx.font='15px "Segoe UI",sans-serif';cx.fillText('\u0424\u0456\u043D\u0430\u043B\u044C\u043D\u0438\u0439 \u0440\u0430\u0445\u0443\u043D\u043E\u043A: \u2B50 '+totalScore+'  |  \u041C\u043E\u043D\u0435\u0442\u0438: \uD83E\uDE99'+totalCoins,GW/2,GH/2+60);
+  cx.fillStyle='rgba(200,200,200,0.8)';cx.font='13px "Segoe UI",sans-serif';
+  ['\u0422\u0456\u0442\u043A\u0430 \u0413\u0430\u043B\u044F \u0432\u0441\u0435 \u0449\u0435 \u0441\u0435\u0440\u0434\u0438\u0442\u044C\u0441\u044F. \uD83D\uDE24','\u0414\u0438\u0440\u0435\u043A\u0442\u043E\u0440 \u0432\u0438\u0441\u0442\u0430\u0432\u0438\u0432 \u043E\u0446\u0456\u043D\u043A\u0443 "1" \u0437\u0430 \u043F\u0440\u043E\u0433\u0443\u043B. \uD83D\uDCCB','\u0428\u0430\u0443\u0440\u043C\u0435\u043D \u0432\u0456\u0434\u043A\u0440\u0438\u0432 \u043D\u043E\u0432\u0443 \u0448\u0430\u0443\u0440\u043C\u0435\u0440\u0456\u044E. \uD83C\uDF2F'].forEach((t,i)=>cx.fillText(t,GW/2,GH/2+90+i*20));
+  if(Math.floor(frameN/32)%2){cx.fillStyle='#2ecc71';cx.font='bold 16px "Segoe UI",sans-serif';cx.fillText('\u25B6  \u041F\u0420\u041E\u0411\u0406\u041B / ENTER \u2014 \u0433\u0440\u0430\u0442\u0438 \u0437\u043D\u043E\u0432\u0443  \u25C4',GW/2,GH-20);}
 }
-
-// ============================================================
-// GAME FLOW
-// ============================================================
-function startGame() {
-  resetState();
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('game').style.display = 'flex';
-  updateStats();
-  renderScene('prologue');
+function drawBossArena(){
+  const cols=[['#1a0030','#000'],['#001230','#000'],['#200800','#000']];
+  const c=cols[(LVLS[lvlIdx]&&LVLS[lvlIdx].bossIdx)||0]||cols[0];
+  const g=cx.createLinearGradient(0,0,0,GH);g.addColorStop(0,c[0]);g.addColorStop(1,c[1]);
+  cx.fillStyle=g;cx.fillRect(0,0,GW,GH);
+  cx.fillStyle=['#5a1a80','#1a3a60','#602000'][(LVLS[lvlIdx]&&LVLS[lvlIdx].bossIdx)||0]||'#333';
+  cx.fillRect(0,GH-60,GW,60);
+  cx.fillStyle='rgba(255,255,255,0.07)';for(let i=0;i<GW;i+=40)cx.fillRect(i,GH-60,2,60);
+  for(const p of BOSS_ARENA){if(p.ow){cx.fillStyle='rgba(255,255,255,0.2)';cx.fillRect(p.x,p.y,p.w,p.h);cx.fillStyle='rgba(255,255,255,0.4)';cx.fillRect(p.x,p.y,p.w,3);}}
+  const bac=['rgba(150,0,200,0.04)','rgba(0,80,200,0.04)','rgba(200,80,0,0.05)'];
+  cx.fillStyle=bac[(LVLS[lvlIdx]&&LVLS[lvlIdx].bossIdx)||0]||'rgba(100,100,100,0.04)';
+  for(let i=0;i<5;i++){const rx=(frameN*0.5+i*80)%GW,ry=Math.sin(frameN*0.02+i)*40+GH/2;cx.beginPath();cx.arc(rx,ry,60+Math.sin(frameN*0.03+i)*20,0,Math.PI*2);cx.fill();}
 }
-
-function restartGame() {
-  document.getElementById('ending').style.display = 'none';
-  document.getElementById('game').style.display = 'flex';
-  startGame();
+function checkSpikes(){
+  if(P.dead||P.ifr>0)return;
+  for(const s of lvlSpikes){if(ovlp(P,{x:s.x,y:s.y,w:s.w,h:s.h})){hurtP(1);P.vy=-6;break;}}
 }
+function checkPit(){if(!P.dead&&P.y>GH+40){P.hp=0;P.dead=true;deathMsg=DEATH_UK[ri(0,DEATH_UK.length-1)];}}
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+// MAIN LOOP
+let lastT=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=ts-lastT;lastT=ts;if(dt>120)return;
+  frameN++;
+  cx.clearRect(0,0,GW,GH);
+  tickDlg();tickParts();
+  if(STATE==='menu'){
+    drawMenu();
+    if(KP['Space']||KP['Enter']){lvlIdx=0;totalScore=0;totalCoins=0;P.hp=3;P.maxHp=3;loadLevel(0);STATE='play';}
+  } else if(STATE==='play'){
+    tickP(lvlPlats);checkAtkHit();checkSpikes();checkPit();
+    tickENMs(lvlPlats);tickPROJs(lvlPlats);tickPKUPs(lvlPlats);updateCam();
+    drawLevel(camX,camY);drawParts(camX,camY);drawPKUPs(camX,camY);drawENMs(camX,camY);drawPROJs(camX,camY);drawP(camX,camY);drawHUD();drawDlg();
+    if(ovlp(P,{x:exitDoor.x,y:exitDoor.y,w:exitDoor.w,h:exitDoor.h})){STATE='boss';startBoss(LVLS[lvlIdx].bossIdx);}
+    if(P.dead){STATE='dying';}
+  } else if(STATE==='dying'){
+    updateCam();drawLevel(camX,camY);drawParts(camX,camY);drawPKUPs(camX,camY);drawENMs(camX,camY);drawHUD();drawDlg();
+    if(frameN%60===0){STATE='gameover';frameN=0;}
+  } else if(STATE==='boss'){
+    tickP(lvlPlats);checkAtkHit();tickBoss();tickENMs(lvlPlats);tickPROJs(lvlPlats);
+    drawBossArena();drawParts(0,0);drawENMs(0,0);drawPROJs(0,0);drawBoss();drawP(0,0);drawHPRow(10,8);drawDlg();
+  } else if(STATE==='minigame'){
+    tickMG();drawMG();
+  } else if(STATE==='gameover'){
+    drawGameOver();
+    if(KP['Space']||KP['Enter']){lvlIdx=0;totalScore=0;totalCoins=0;P.hp=3;P.maxHp=3;loadLevel(0);STATE='play';}
+  } else if(STATE==='win'){
+    drawWin();
+    if(KP['Space']||KP['Enter']){lvlIdx=0;totalScore=0;totalCoins=0;P.hp=3;P.maxHp=3;loadLevel(0);STATE='play';}
+  }
+  clearKP();
 }
+requestAnimationFrame(loop);
 
-// Init
-resetState();
 </script>
 </body>
 </html>
