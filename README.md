@@ -8,7 +8,7 @@
 
   <br/>
 
-  <a href="https://ramka1q.github.io/-/">
+  <a href="https://htmlpreview.github.io/?https://github.com/ramka1q/-/blob/main/index.html">
     <img src="https://img.shields.io/badge/▶%20ИГРАТЬ%20ОНЛАЙН-FF4500?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Играть онлайн" />
   </a>
 
