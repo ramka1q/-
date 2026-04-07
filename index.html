@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Пилипюк и Компания: Квест за Легендарной Шавермой</title>
 <style>
   :root {
@@ -1606,10 +1606,9 @@ function makeChoice(choice) {
     return;
   }
 
-  // Dream ending trigger: if Egor's paranoia choices made, high karma
+  // Dream ending trigger: if player negotiated with geese AND has high friendship and karma
   if (choice.next === 'ending_good' && G.friendship > 80 && G.karma > 70) {
-    // Small chance of dream ending as easter egg
-    if (G.choices.filter(c => c.includes('Гусей')).length > 0 || Math.random() < 0.15) {
+    if (G.negotiatedGoose || G.choices.filter(c => c.includes('Гусей')).length > 0) {
       renderScene('ending_dream');
       return;
     }
