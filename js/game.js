@@ -18,10 +18,12 @@
 
   /* ---- баланс ---- */
   const EAT_RATIO = 1.06;
-  const BASE_GROW = 0.16;        // менший ріст за укус → рівні значно довші
+  const BASE_GROW = 0.032;       // ріст за укус у 5 разів повільніший (накопичується довго)
+  const FOOD_MULT = 4;           // у 4 рази більше обʼєктів, які можна їсти
   const SPEED_K = 6.2;
   const DASH_MULT = 2.35;
-  const RESPAWN_MIN = 70;
+  const RESPAWN_MIN = 80;
+  const RESPAWN_CAP = 620;       // більше їжі на полі
   const DASH_DRAIN = 0.0875;     // витрата витривалості (×8 більший запас ривка)
   const DASH_REGEN = 0.35;
 
@@ -87,7 +89,7 @@
     nikita.r = level.startR; nikita.vx = nikita.vy = 0; nikita.chomp = 0; nikita.stamina = 1; nikita.staminaLock = false; nikita.hurtCd = 0;
     cam.x = nikita.x; cam.y = nikita.y; cam.zoom = 1;
 
-    for (const sp of level.spawns) for (let k = 0; k < sp.count; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
+    for (const sp of level.spawns) for (let k = 0; k < sp.count * FOOD_MULT; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
     for (const es of (level.enemies || [])) for (let k = 0; k < es.count; k++) enemies.push(makeEnemy(es));
 
     boss = {
@@ -173,12 +175,13 @@
     nikita.hurtCd = Math.max(0, nikita.hurtCd - dt);
 
     /* --- ривок / витривалість ---
-       Запас відновлюється ЛИШЕ коли кнопку відпущено. Коли запас вичерпано —
-       блокування: ривок недоступний, доки запас не відновиться ПОВНІСТЮ. */
+       Запас НЕ відновлюється під час часткового використання. Він починає
+       відновлюватися ЛИШЕ після того, як його повністю витрачено (до нуля),
+       і тоді блокується, доки не відновиться ПОВНІСТЮ. */
     const btn = input.dashKey || input.dashMouse || input.dashBtn;
     if (nikita.staminaLock) {
       nikita.dashing = false;
-      if (!btn) nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
+      if (!btn) nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina); // поки тримаєш — не відновлюється
       if (nikita.stamina >= 1) { nikita.stamina = 1; nikita.staminaLock = false; }
     } else if (btn && nikita.stamina > 0) {
       nikita.dashing = true;
@@ -187,7 +190,7 @@
       if (nikita.stamina <= 0) { nikita.stamina = 0; nikita.staminaLock = true; nikita.dashing = false; sfxHurt(); }
     } else {
       nikita.dashing = false;
-      if (!btn) nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
+      // часткове використання: запас стоїть на місці, не відновлюється
     }
     const wantDash = nikita.dashing;
 
@@ -215,9 +218,10 @@
     nikita.y = clamp(nikita.y + nikita.vy * dt, nikita.r, level.world - nikita.r);
     if (Math.hypot(nikita.vx, nikita.vy) > 5) nikita.dir = Math.atan2(nikita.vy, nikita.vx);
 
-    /* --- камера --- */
+    /* --- камера: що більший Нікіта — то далі камера (видно більше світу) --- */
     const baseR = Math.min(W, H) * 0.082;
-    cam.zoom = damp(cam.zoom, clamp(baseR / nikita.r, 0.04, 4), 0.002, dt);
+    const screenR = baseR * Math.pow(level.startR / nikita.r, 0.32);  // ефективний розмір на екрані зменшується з ростом
+    cam.zoom = damp(cam.zoom, clamp(screenR / nikita.r, 0.02, 4), 0.0025, dt);
     cam.x = damp(cam.x, nikita.x, 0.0001, dt); cam.y = damp(cam.y, nikita.y, 0.0001, dt);
 
     /* --- їжа --- */
@@ -244,9 +248,9 @@
 
     /* --- підтримка їжі --- */
     let edible = 0; for (const p of props) if (p.r <= eatR) edible++;
-    if (edible < RESPAWN_MIN && props.length < 380) {
+    if (edible < RESPAWN_MIN && props.length < RESPAWN_CAP) {
       const sp = pick(level.spawns);
-      for (let n = 0; n < 5; n++) props.push(makeProp(sp.type, clamp(rand(nikita.r * 0.4, nikita.r * 0.95), 4, level.bossR * 0.9), true));
+      for (let n = 0; n < 8; n++) props.push(makeProp(sp.type, clamp(rand(nikita.r * 0.4, nikita.r * 0.95), 4, level.bossR * 0.9), true));
     }
 
     if (bannerData) { bannerData.t += dt; if (bannerData.t > 4) bannerData = null; }
@@ -583,7 +587,8 @@
     ctx.fillStyle = locked ? '#ff5a6e' : (nikita.stamina > 0.99 ? '#7CFFB2' : '#6fe3ff');
     roundRect(ctx, sx2, sy2, Math.max(2, sw * nikita.stamina), sh, 4); ctx.fill();
     ctx.font = '700 10px Montserrat, Arial';
-    if (locked) { ctx.fillStyle = (0.5 + 0.5 * Math.sin(S.time * 10)) > 0.5 ? '#ff7a8e' : '#ffd84d'; ctx.fillText('ВІДНОВЛЕННЯ — відпусти ривок (' + Math.round(nikita.stamina * 100) + '%)', sx2 + sw + 8, sy2 + sh); }
+    if (locked) { ctx.fillStyle = (0.5 + 0.5 * Math.sin(S.time * 10)) > 0.5 ? '#ff7a8e' : '#ffd84d'; ctx.fillText('ПЕРЕЗАРЯДКА — відпусти ривок (' + Math.round(nikita.stamina * 100) + '%)', sx2 + sw + 8, sy2 + sh); }
+    else if (nikita.stamina < 0.999) { ctx.fillStyle = '#ffd06b'; ctx.fillText('РИВОК — витрать до нуля для перезарядки', sx2 + sw + 8, sy2 + sh); }
     else { ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillText('РИВОК (Shift / ПКМ / ⚡)', sx2 + sw + 8, sy2 + sh); }
 
     ctx.textAlign = 'right'; ctx.font = '800 20px Montserrat, Arial'; ctx.fillStyle = '#fff';
