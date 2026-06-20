@@ -1,7 +1,8 @@
 /* Service worker — кеш для офлайн-гри на телефоні/ПК.
    Підвищуй версію CACHE, коли змінюєш файли гри. */
-const CACHE = 'nikita-pozhyrach-v2';
+const CACHE = 'nikita-pozhyrach-v3';
 const ASSETS = [
+  'index.html',
   'nikita-game.html',
   'css/style.css',
   'js/utils.js',

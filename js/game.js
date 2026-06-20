@@ -39,7 +39,7 @@
   let props = [], enemies = [], projectiles = [], particles = [], popups = [], wells = [];
   let boss = null;
   let splitTimer = 0;
-  const nikita = { x: 0, y: 0, r: 10, vx: 0, vy: 0, dir: 0, chomp: 0, wob: 0, stamina: 1, dashing: false, hurtCd: 0 };
+  const nikita = { x: 0, y: 0, r: 10, vx: 0, vy: 0, dir: 0, chomp: 0, wob: 0, stamina: 1, staminaLock: false, dashing: false, hurtCd: 0 };
   const cam = { x: 0, y: 0, zoom: 1 };
   let parallax = [];
 
@@ -84,7 +84,7 @@
     props = []; enemies = []; projectiles = []; particles = []; popups = []; wells = [];
     splitTimer = 0;
     nikita.x = level.world / 2; nikita.y = level.world / 2;
-    nikita.r = level.startR; nikita.vx = nikita.vy = 0; nikita.chomp = 0; nikita.stamina = 1; nikita.hurtCd = 0;
+    nikita.r = level.startR; nikita.vx = nikita.vy = 0; nikita.chomp = 0; nikita.stamina = 1; nikita.staminaLock = false; nikita.hurtCd = 0;
     cam.x = nikita.x; cam.y = nikita.y; cam.zoom = 1;
 
     for (const sp of level.spawns) for (let k = 0; k < sp.count; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
@@ -172,11 +172,24 @@
     nikita.chomp = Math.max(0, nikita.chomp - dt * 3);
     nikita.hurtCd = Math.max(0, nikita.hurtCd - dt);
 
-    /* --- ривок / витривалість --- */
-    const wantDash = (input.dashKey || input.dashMouse || input.dashBtn) && nikita.stamina > 0.01;
-    nikita.dashing = wantDash;
-    if (wantDash) { nikita.stamina = Math.max(0, nikita.stamina - dt * DASH_DRAIN); if (Math.random() < 0.3) sfxDash(); }
-    else nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
+    /* --- ривок / витривалість ---
+       Запас відновлюється ЛИШЕ коли кнопку відпущено. Коли запас вичерпано —
+       блокування: ривок недоступний, доки запас не відновиться ПОВНІСТЮ. */
+    const btn = input.dashKey || input.dashMouse || input.dashBtn;
+    if (nikita.staminaLock) {
+      nikita.dashing = false;
+      if (!btn) nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
+      if (nikita.stamina >= 1) { nikita.stamina = 1; nikita.staminaLock = false; }
+    } else if (btn && nikita.stamina > 0) {
+      nikita.dashing = true;
+      nikita.stamina = Math.max(0, nikita.stamina - dt * DASH_DRAIN);
+      if (Math.random() < 0.3) sfxDash();
+      if (nikita.stamina <= 0) { nikita.stamina = 0; nikita.staminaLock = true; nikita.dashing = false; sfxHurt(); }
+    } else {
+      nikita.dashing = false;
+      if (!btn) nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
+    }
+    const wantDash = nikita.dashing;
 
     /* --- ціль руху --- */
     let tx, ty;
@@ -565,9 +578,13 @@
 
     // стаміна (ривок)
     const sx2 = bx, sy2 = by + bh + 22, sw = 180, sh = 9;
+    const locked = nikita.staminaLock;
     ctx.fillStyle = 'rgba(0,0,0,0.4)'; roundRect(ctx, sx2, sy2, sw, sh, 4); ctx.fill();
-    ctx.fillStyle = nikita.stamina > 0.2 ? '#6fe3ff' : '#ff6b8a'; roundRect(ctx, sx2, sy2, sw * nikita.stamina, sh, 4); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = '600 10px Montserrat, Arial'; ctx.fillText('РИВОК (Shift/ПКМ)', sx2 + sw + 8, sy2 + sh);
+    ctx.fillStyle = locked ? '#ff5a6e' : (nikita.stamina > 0.99 ? '#7CFFB2' : '#6fe3ff');
+    roundRect(ctx, sx2, sy2, Math.max(2, sw * nikita.stamina), sh, 4); ctx.fill();
+    ctx.font = '700 10px Montserrat, Arial';
+    if (locked) { ctx.fillStyle = (0.5 + 0.5 * Math.sin(S.time * 10)) > 0.5 ? '#ff7a8e' : '#ffd84d'; ctx.fillText('ВІДНОВЛЕННЯ — відпусти ривок (' + Math.round(nikita.stamina * 100) + '%)', sx2 + sw + 8, sy2 + sh); }
+    else { ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillText('РИВОК (Shift / ПКМ / ⚡)', sx2 + sw + 8, sy2 + sh); }
 
     ctx.textAlign = 'right'; ctx.font = '800 20px Montserrat, Arial'; ctx.fillStyle = '#fff';
     ctx.fillText('🍴 ' + S.score, W - 24, 36);
@@ -582,13 +599,19 @@
 
   function drawDashButton() {
     const r = Math.min(W, H) * 0.08, x = W - r - 30, y = H - r - 30;
+    const locked = nikita.staminaLock;
     ctx.save();
-    ctx.globalAlpha = nikita.dashing ? 0.95 : 0.5;
-    const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r); g.addColorStop(0, '#6fe3ff'); g.addColorStop(1, '#2a5fa0');
+    ctx.globalAlpha = locked ? 0.4 : (nikita.dashing ? 0.95 : 0.6);
+    const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r);
+    if (locked) { g.addColorStop(0, '#ff7a8e'); g.addColorStop(1, '#7a2230'); } else { g.addColorStop(0, '#6fe3ff'); g.addColorStop(1, '#2a5fa0'); }
     ctx.fillStyle = g; circle(ctx, x, y, r); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; circle(ctx, x, y, r); ctx.stroke();
+    // кільце запасу
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; circle(ctx, x, y, r); ctx.stroke();
+    ctx.strokeStyle = locked ? '#ffd84d' : '#fff';
+    ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * nikita.stamina); ctx.stroke();
+    ctx.globalAlpha = locked ? 0.6 : 1;
     ctx.fillStyle = '#fff'; ctx.font = `800 ${Math.round(r * 0.5)}px Montserrat, Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('⚡', x, y); ctx.restore();
+    ctx.fillText(locked ? '⌛' : '⚡', x, y); ctx.restore();
     drawDashButton.rect = { x, y, r };
   }
 
@@ -726,7 +749,7 @@
   if (typeof window !== 'undefined') {
     window.__nikita = {
       get mode() { return S.mode; }, get level() { return S.levelIndex; }, get score() { return S.score; },
-      get nx() { return nikita.x; }, get ny() { return nikita.y; }, get nr() { return nikita.r; }, get stamina() { return nikita.stamina; },
+      get nx() { return nikita.x; }, get ny() { return nikita.y; }, get nr() { return nikita.r; }, get stamina() { return nikita.stamina; }, get staminaLock() { return nikita.staminaLock; },
       get bx() { return boss ? boss.x : 0; }, get by() { return boss ? boss.y : 0; }, get br() { return boss ? boss.r : 0; },
       get balive() { return !!(boss && boss.alive); }, get shield() { return !!(boss && boss.shieldUp); },
       get robot() { const r = enemies.find(e => e.guardian && e.hp > 0); return r ? { x: r.x, y: r.y, r: r.r } : null; },
