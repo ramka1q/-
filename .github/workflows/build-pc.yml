@@ -42,7 +42,7 @@ jobs:
       - name: Встановити залежності та зібрати .exe
         working-directory: desktop
         run: |
-          npm install --no-audit --no-fund electron@31 electron-builder@24
+          npm install --no-audit --no-fund --save-dev electron@31 electron-builder@24
           npx electron-builder --win --publish never
 
       - name: Завантажити як артефакт

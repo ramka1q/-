@@ -3,6 +3,7 @@
   "productName": "Nikita Pozhyrach",
   "version": "1.0.0",
   "description": "НІКІТА: Пожирач планети — настільна версія",
+  "author": "ramka1q",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
