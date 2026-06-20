@@ -1,0 +1,19 @@
+{
+  "name": "nikita-pozhyrach",
+  "productName": "Nikita Pozhyrach",
+  "version": "1.0.0",
+  "description": "НІКІТА: Пожирач планети — настільна версія",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "build": {
+    "appId": "com.ramka1q.nikita",
+    "productName": "Nikita Pozhyrach",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "web/**/*"],
+    "win": { "target": "portable" },
+    "portable": { "artifactName": "nikita-game-pc.exe" }
+  }
+}

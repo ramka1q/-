@@ -1,0 +1,66 @@
+name: Build PC (Windows)
+
+# Збирає standalone Windows .exe (Electron) — гра у власному вікні, без браузера.
+# Готовий файл потрапляє у Releases (тег pc-latest) та в артефакти.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "claude/nice-einstein-ufg48j", "main" ]
+    paths:
+      - "js/**"
+      - "css/**"
+      - "assets/**"
+      - "nikita-game.html"
+      - "manifest.json"
+      - "desktop/**"
+      - ".github/workflows/build-pc.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Покласти гру у desktop/web
+        shell: bash
+        run: |
+          rm -rf desktop/web && mkdir -p desktop/web
+          cp -r css js assets nikita-game.html desktop/web/
+          cp manifest.json desktop/web/ 2>/dev/null || true
+          cp sw.js desktop/web/ 2>/dev/null || true
+
+      - name: Встановити залежності та зібрати .exe
+        working-directory: desktop
+        run: |
+          npm install --no-audit --no-fund electron@31 electron-builder@24
+          npx electron-builder --win --publish never
+
+      - name: Завантажити як артефакт
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nikita-game-pc
+          path: desktop/dist/nikita-game-pc.exe
+          if-no-files-found: warn
+
+      - name: Опублікувати у Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pc-latest
+          name: "Нікіта — версія для ПК (Windows)"
+          files: desktop/dist/nikita-game-pc.exe
+          body: |
+            Standalone Windows-версія гри «НІКІТА: Пожирач планети».
+            Завантаж `nikita-game-pc.exe` і просто запусти (подвійний клік) — браузер не потрібен.
+            Якщо Windows SmartScreen попередить — «Докладніше» → «Виконати в будь-якому разі».
+            F11 — повноекранний режим.
