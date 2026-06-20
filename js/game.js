@@ -42,7 +42,7 @@
   let boss = null;
   let splitTimer = 0;
   const nikita = { x: 0, y: 0, r: 10, vx: 0, vy: 0, dir: 0, chomp: 0, wob: 0, stamina: 1, staminaLock: false, dashing: false, hurtCd: 0 };
-  const cam = { x: 0, y: 0, zoom: 1 };
+  const cam = { x: 0, y: 0, zoom: 1, tier: 0 };
   let parallax = [];
 
   /* ---- ввід ---- */
@@ -87,7 +87,8 @@
     splitTimer = 0;
     nikita.x = level.world / 2; nikita.y = level.world / 2;
     nikita.r = level.startR; nikita.vx = nikita.vy = 0; nikita.chomp = 0; nikita.stamina = 1; nikita.staminaLock = false; nikita.hurtCd = 0;
-    cam.x = nikita.x; cam.y = nikita.y; cam.zoom = 1;
+    cam.x = nikita.x; cam.y = nikita.y; cam.tier = 0;
+    cam.zoom = Math.min(W, H) * 0.082 / level.startR;   // стартовий зум одразу правильний
 
     for (const sp of level.spawns) for (let k = 0; k < sp.count * FOOD_MULT; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
     for (const es of (level.enemies || [])) for (let k = 0; k < es.count; k++) enemies.push(makeEnemy(es));
@@ -218,10 +219,19 @@
     nikita.y = clamp(nikita.y + nikita.vy * dt, nikita.r, level.world - nikita.r);
     if (Math.hypot(nikita.vx, nikita.vy) > 5) nikita.dir = Math.atan2(nikita.vy, nikita.vx);
 
-    /* --- камера: що більший Нікіта — то далі камера (видно більше світу) --- */
+    /* --- камера СХОДИНКАМИ: у межах щаблю Нікіта росте на екрані,
+       а коли виростає на STEP — камера плавно відʼїжджає на крок (тільки назовні) --- */
     const baseR = Math.min(W, H) * 0.082;
-    const screenR = baseR * Math.pow(level.startR / nikita.r, 0.32);  // ефективний розмір на екрані зменшується з ростом
-    cam.zoom = damp(cam.zoom, clamp(screenR / nikita.r, 0.02, 4), 0.0025, dt);
+    const STEP = 1.2;   // ~ +20% розміру = новий щабель віддалення (≈5–6 кроків за рівень)
+    const tier = Math.floor(Math.log(Math.max(1, nikita.r / level.startR)) / Math.log(STEP));
+    if (tier > cam.tier) {
+      cam.tier = tier;
+      popup(nikita.x, nikita.y - nikita.r * 1.4, '▲ РІСТ', '#7CFFB2');
+      beep(520, 0.12, 'triangle', 0.1, 160);
+      S.flash = Math.max(S.flash, 0.12); S.flashColor = '#7CFFB2';
+    }
+    const targetZoom = clamp(baseR / (level.startR * Math.pow(STEP, cam.tier)), 0.02, 6);
+    cam.zoom = damp(cam.zoom, targetZoom, 0.004, dt);   // плавна анімація «кроку»
     cam.x = damp(cam.x, nikita.x, 0.0001, dt); cam.y = damp(cam.y, nikita.y, 0.0001, dt);
 
     /* --- їжа --- */
