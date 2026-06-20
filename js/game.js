@@ -18,10 +18,12 @@
 
   /* ---- баланс ---- */
   const EAT_RATIO = 1.06;
-  const BASE_GROW = 0.42;
+  const BASE_GROW = 0.16;        // менший ріст за укус → рівні значно довші
   const SPEED_K = 6.2;
   const DASH_MULT = 2.35;
   const RESPAWN_MIN = 70;
+  const DASH_DRAIN = 0.0875;     // витрата витривалості (×8 більший запас ривка)
+  const DASH_REGEN = 0.35;
 
   /* ---- стан ---- */
   const S = {
@@ -93,7 +95,7 @@
       key: level.boss, alive: true, panic: 0,
       cfg: level.bossCfg || {}, shootTimer: 1.5, summonTimer: 1.2,
       shieldUp: !!(level.bossCfg && level.bossCfg.shield), shieldHits: 0, shieldMax: 6,
-      guardianAlive: false, sidekick: (level.bossCfg && level.bossCfg.sidekick) || null,
+      guardianAlive: false, guardianDead: false, sidekick: (level.bossCfg && level.bossCfg.sidekick) || null,
     };
 
     // гравітаційні колодязі
@@ -128,7 +130,7 @@
       shoot: spec.shoot ? { rate: spec.shoot.rate, shrink: spec.shoot.shrink, timer: rand(0.5, 2) } : null,
       aim: 0, hitCd: 0, guardian: !!spec.guardian, panic: 0,
     };
-    if (e.moving) { const a = rand(0, TAU); const sp = rand(0.6, 1) * 260; e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp; }
+    if (e.moving) { const a = rand(0, TAU); const sp = rand(0.6, 1) * 130; e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp; } // вдвічі повільніше
     return e;
   }
 
@@ -171,10 +173,10 @@
     nikita.hurtCd = Math.max(0, nikita.hurtCd - dt);
 
     /* --- ривок / витривалість --- */
-    const wantDash = (input.dashKey || input.dashMouse || input.dashBtn) && nikita.stamina > 0.02;
+    const wantDash = (input.dashKey || input.dashMouse || input.dashBtn) && nikita.stamina > 0.01;
     nikita.dashing = wantDash;
-    if (wantDash) { nikita.stamina = Math.max(0, nikita.stamina - dt * 0.7); if (Math.random() < 0.3) sfxDash(); }
-    else nikita.stamina = Math.min(1, nikita.stamina + dt * 0.35 * DIFF.stamina);
+    if (wantDash) { nikita.stamina = Math.max(0, nikita.stamina - dt * DASH_DRAIN); if (Math.random() < 0.3) sfxDash(); }
+    else nikita.stamina = Math.min(1, nikita.stamina + dt * DASH_REGEN * DIFF.stamina);
 
     /* --- ціль руху --- */
     let tx, ty;
@@ -290,7 +292,7 @@
       else if (e.chase && nikita.r < e.r * 2.2) { const a = angleTo(e.x, e.y, nikita.x, nikita.y); ax = Math.cos(a); ay = Math.sin(a); }
       else if (e.flee || (e.chase && nikita.r >= e.r * 2.2)) { const a = angleTo(nikita.x, nikita.y, e.x, e.y); ax = Math.cos(a); ay = Math.sin(a); }
       if (!e.moving) {
-        const sp = e.r * 5.5 * DIFF.enemySpeed * (e.kind === 'tank' ? 0.5 : e.kind === 'robot' ? 0.8 : 1);
+        const sp = e.r * 2.75 * DIFF.enemySpeed * (e.kind === 'tank' ? 0.5 : e.kind === 'robot' ? 0.8 : 1); // вдвічі повільніше
         e.vx = damp(e.vx, ax * sp, 0.002, dt); e.vy = damp(e.vy, ay * sp, 0.002, dt);
         e.x = clamp(e.x + e.vx * dt, e.r, level.world - e.r); e.y = clamp(e.y + e.vy * dt, e.r, level.world - e.r);
         if (ax || ay) e.aim = Math.atan2(nikita.y - e.y, nikita.x - e.x);
@@ -310,7 +312,7 @@
   function killEnemy(e, i, eaten) {
     enemies.splice(i, 1);
     if (eaten) { eatThing(e, true); } else { burst(e.x, e.y, e.r, 16, 30); S.score += 40; popup(e.x, e.y, '+40', '#ffd84d'); }
-    if (e.guardian && boss) { boss.guardianAlive = false; boss.shieldUp = false; S.flash = 0.6; S.flashColor = '#7CFFB2'; popup(boss.x, boss.y, 'ЩИТ ВПАВ!', '#7CFFB2'); }
+    if (e.guardian && boss) { boss.guardianAlive = false; boss.guardianDead = true; boss.shieldUp = false; S.flash = 0.6; S.flashColor = '#7CFFB2'; popup(boss.x, boss.y, 'ЩИТ ВПАВ!', '#7CFFB2'); }
   }
 
   /* ---- бос ---- */
@@ -327,7 +329,7 @@
     let bx, by;
     if (dd < fleeRange) { const a = angleTo(nikita.x, nikita.y, boss.x, boss.y); bx = Math.cos(a); by = Math.sin(a); }
     else { bx = Math.cos(boss.t * 0.4); by = Math.sin(boss.t * 0.5); }
-    const bspeed = nikita.r * SPEED_K * DIFF.bossSpeed * (edible ? 0.6 : 0.48);
+    const bspeed = nikita.r * SPEED_K * DIFF.bossSpeed * (edible ? 0.3 : 0.24); // бос теж удвічі повільніший
     boss.x = clamp(boss.x + bx * bspeed * dt, boss.r, level.world - boss.r);
     boss.y = clamp(boss.y + by * bspeed * dt, boss.r, level.world - boss.r);
 
@@ -335,7 +337,7 @@
     if (boss.cfg.shoot && dd < fleeRange * 1.4) { boss.shootTimer -= dt; if (boss.shootTimer <= 0) { boss.shootTimer = boss.cfg.shoot.rate / DIFF.shootRate; shootAt(boss.x, boss.y, boss.r * 0.16, boss.cfg.shoot.shrink, true); } }
 
     // виклик підмоги/робота
-    if (boss.cfg.summon) {
+    if (boss.cfg.summon && !(boss.cfg.summon.guardian && boss.guardianDead)) {
       boss.summonTimer -= dt;
       const sameKind = enemies.filter(e => e.kind === boss.cfg.summon.kind).length;
       if (boss.summonTimer <= 0 && sameKind < boss.cfg.summon.max) {
@@ -727,7 +729,8 @@
       get nx() { return nikita.x; }, get ny() { return nikita.y; }, get nr() { return nikita.r; }, get stamina() { return nikita.stamina; },
       get bx() { return boss ? boss.x : 0; }, get by() { return boss ? boss.y : 0; }, get br() { return boss ? boss.r : 0; },
       get balive() { return !!(boss && boss.alive); }, get shield() { return !!(boss && boss.shieldUp); },
-      get robot() { const r = enemies.find(e => e.guardian); return r ? { x: r.x, y: r.y, r: r.r } : null; },
+      get robot() { const r = enemies.find(e => e.guardian && e.hp > 0); return r ? { x: r.x, y: r.y, r: r.r } : null; },
+      get food() { let b = null, bd = 1e18; const eatR = nikita.r * EAT_RATIO; for (const p of props) { if (p.r <= eatR && p.r > nikita.r * 0.25) { const dd = dist2(p.x, p.y, nikita.x, nikita.y); if (dd < bd) { bd = dd; b = p; } } } return b ? { x: b.x, y: b.y, r: b.r } : null; },
       setDiff(d) { S.diffPick = diffKeys.indexOf(d); }, get diff() { return S.diff; },
     };
   }
