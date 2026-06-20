@@ -9,11 +9,11 @@
 
 ## ▶️ Як запустити
 
-Просто відкрий `index.html` у браузері. Або підніми локальний сервер:
+Просто відкрий `nikita-game.html` у браузері. Або підніми локальний сервер:
 
 ```bash
 python3 -m http.server 8000
-# відкрий http://localhost:8000
+# відкрий http://localhost:8000/nikita-game.html
 ```
 
 ## 🎮 Керування
@@ -51,7 +51,7 @@ python3 -m http.server 8000
 ## 🗂️ Структура
 
 ```
-index.html        точка входу
+nikita-game.html  точка входу (відкрий цей файл)
 css/style.css     оформлення вікна
 js/utils.js       математика, easing, помічники
 js/art.js         вся графіка: Нікіта, вчені, "їжа"
