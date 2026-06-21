@@ -20,10 +20,11 @@
   const EAT_RATIO = 1.06;
   const BASE_GROW = 0.032;       // ріст за укус у 5 разів повільніший (накопичується довго)
   const FOOD_MULT = 4;           // у 4 рази більше обʼєктів, які можна їсти
+  const TARGET_PROPS = 240;      // базова кількість предметів — ОДНАКОВА для кожного рівня (× FOOD_MULT)
   const SPEED_K = 6.2;
   const DASH_MULT = 2.35;
-  const RESPAWN_MIN = 80;
-  const RESPAWN_CAP = 620;       // більше їжі на полі
+  const RESPAWN_MIN = 160;       // завжди багато їжі поряд (однакова щільність на всіх рівнях)
+  const RESPAWN_CAP = 1000;
   const DASH_DRAIN = 0.0875;     // витрата витривалості (×8 більший запас ривка)
   const DASH_REGEN = 0.35;
 
@@ -90,7 +91,13 @@
     cam.x = nikita.x; cam.y = nikita.y; cam.tier = 0;
     cam.zoom = Math.min(W, H) * 0.082 / level.startR;   // стартовий зум одразу правильний
 
-    for (const sp of level.spawns) for (let k = 0; k < sp.count * FOOD_MULT; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
+    // однакова кількість предметів на кожному рівні (розподіл — за пропорціями рівня)
+    const totalBase = level.spawns.reduce((s, sp) => s + sp.count, 0) || 1;
+    const scale = (TARGET_PROPS / totalBase) * FOOD_MULT;
+    for (const sp of level.spawns) {
+      const n = Math.max(1, Math.round(sp.count * scale));
+      for (let k = 0; k < n; k++) props.push(makeProp(sp.type, rand(sp.rMin, sp.rMax)));
+    }
     for (const es of (level.enemies || [])) for (let k = 0; k < es.count; k++) enemies.push(makeEnemy(es));
 
     boss = {
@@ -260,7 +267,7 @@
     let edible = 0; for (const p of props) if (p.r <= eatR) edible++;
     if (edible < RESPAWN_MIN && props.length < RESPAWN_CAP) {
       const sp = pick(level.spawns);
-      for (let n = 0; n < 8; n++) props.push(makeProp(sp.type, clamp(rand(nikita.r * 0.4, nikita.r * 0.95), 4, level.bossR * 0.9), true));
+      for (let n = 0; n < 14; n++) props.push(makeProp(sp.type, clamp(rand(nikita.r * 0.4, nikita.r * 0.95), 4, level.bossR * 0.9), true));
     }
 
     if (bannerData) { bannerData.t += dt; if (bannerData.t > 4) bannerData = null; }
@@ -330,7 +337,7 @@
 
       // контакт
       if (dd < nikita.r + e.r * 0.6) {
-        if (e.r <= eatR && e.edibleBonus) { killEnemy(e, i, true); continue; }
+        if (e.r <= eatR) { killEnemy(e, i, true); continue; }   // будь-якого ворога можна зʼїсти, якщо ти більший за нього
         if (nikita.dashing && e.hp > 0 && e.hitCd <= 0) { e.hp--; e.hitCd = 0.3; const a = angleTo(nikita.x, nikita.y, e.x, e.y); e.vx += Math.cos(a) * 400; e.vy += Math.sin(a) * 400; burst(e.x, e.y, e.r * 0.5, 6, 0); sfxHurt(); if (e.hp <= 0) { killEnemy(e, i, false); continue; } }
         else if (e.contact && nikita.r < e.r * 1.05 && nikita.hurtCd <= 0 && !nikita.dashing) hurtNikita(e.contact, e.x, e.y);
       }
@@ -479,6 +486,7 @@
     const edibleMark = nikita.r * EAT_RATIO;
     const visible = props.filter(vis); visible.sort((a, b) => b.r - a.r);
     for (const p of visible) {
+      if (p.r * cam.zoom < 1.2) continue;   // надто дрібне на екрані — не малюємо (оптимізація)
       Art.prop(ctx, p.x, p.y, p.r, p.type, p.seed, p.t);
       if (p.r <= edibleMark && p.r > nikita.r * 0.5) { ctx.save(); ctx.globalAlpha = 0.22 + 0.18 * Math.sin(S.time * 6 + p.seed); ctx.strokeStyle = '#7CFFB2'; ctx.lineWidth = 2 / cam.zoom; circle(ctx, p.x, p.y, p.r * 1.12); ctx.stroke(); ctx.restore(); }
     }
