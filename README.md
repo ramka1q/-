@@ -76,6 +76,17 @@ Standalone Windows-застосунок (гра у власному вікні, 
 > Mac/Linux: відкрий `nikita-game.html` у браузері (зі скачаного ZIP репозиторію) —
 > працює так само.
 
+## 📁 Уся папка одним ZIP
+
+Усі файли проєкту однією текою (зручно скачати все й відкрити в браузері або редагувати код):
+
+### ⬇️ Завантажити: **https://github.com/ramka1q/-/releases/download/folder-latest/nikita-game-folder.zip**
+
+Розпакуй → відкрий **`nikita-game.html`**. Усередині все: `css/`, `js/`, `assets/`, `desktop/`, маніфест тощо.
+
+> Або built-in архів GitHub (та сама папка, але з довгою назвою):
+> `https://github.com/ramka1q/-/archive/refs/heads/claude/nice-einstein-ufg48j.zip`
+
 ## 🎮 Керування
 
 | Дія | Клавіші / дотик |

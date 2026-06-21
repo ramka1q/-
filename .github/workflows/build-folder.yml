@@ -1,0 +1,63 @@
+name: Pack folder (ZIP)
+
+# Пакує ВСІ файли проєкту в один nikita-game-folder.zip
+# і кладе у Releases (тег folder-latest) та в артефакти.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "claude/nice-einstein-ufg48j", "main" ]
+    paths:
+      - "js/**"
+      - "css/**"
+      - "assets/**"
+      - "nikita-game.html"
+      - "index.html"
+      - "manifest.json"
+      - "sw.js"
+      - "README.md"
+      - "desktop/**"
+      - ".github/workflows/build-folder.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Запакувати всю папку в ZIP
+        run: |
+          mkdir -p out/nikita-game
+          rsync -a \
+            --exclude='.git' \
+            --exclude='out' \
+            --exclude='node_modules' \
+            --exclude='desktop/web' \
+            --exclude='desktop/dist' \
+            --exclude='desktop/node_modules' \
+            ./ out/nikita-game/
+          (cd out && zip -r ../nikita-game-folder.zip nikita-game >/dev/null)
+          ls -lh nikita-game-folder.zip
+
+      - name: Завантажити як артефакт
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nikita-game-folder
+          path: nikita-game-folder.zip
+          if-no-files-found: warn
+
+      - name: Опублікувати у Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: folder-latest
+          name: "Нікіта — уся папка (ZIP)"
+          files: nikita-game-folder.zip
+          body: |
+            Усі файли гри «НІКІТА: Пожирач планети» однією текою.
+            Розпакуй ZIP і відкрий `nikita-game.html` у браузері — гра запуститься.
+            (Тут є й вихідний код: css/, js/, assets/, desktop/ тощо.)
