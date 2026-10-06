@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "mymod",
+	"version": "${version}",
+	"name": "My Mod",
+	"description": "Мій перший мод",
+	"authors": [
+		"ramka1q"
+	],
+	"contact": {
+		"homepage": "https://github.com/ramka1q/-",
+		"sources": "https://github.com/ramka1q/-"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/mymod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.mymod.MyMod"
+		],
+		"client": [
+			"com.mymod.client.MyModClient"
+		]
+	},
+	"mixins": [
+		"mymod.mixins.json",
+		{
+			"config": "mymod.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

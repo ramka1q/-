@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "com.mymod.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MyModMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
