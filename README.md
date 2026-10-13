@@ -9,7 +9,15 @@
 
 ## Как скачать и запустить
 
-**На компьютер:** скачай архив
+**📱 Android (APK):** [NikitaEatsAll.apk](https://github.com/ramka1q/-/raw/claude/nice-meitner-v249rp/dist/NikitaEatsAll.apk)
+— скачай на телефон, открой файл и разреши «Установку из неизвестных источников». Работает без интернета.
+
+**💻 Windows (EXE):** [NikitaEatsAll.exe](https://github.com/ramka1q/-/raw/claude/nice-meitner-v249rp/dist/NikitaEatsAll.exe)
+— просто запусти, установка не нужна. Если Windows покажет синее окно SmartScreen —
+«Подробнее» → «Выполнить в любом случае». Игра откроется в своём окне (F11 — полный экран);
+на старых Windows без WebView2 она откроется в браузере.
+
+**Из архива:** скачай
 [nikita-game.zip](https://github.com/ramka1q/-/archive/refs/heads/claude/nice-meitner-v249rp.zip),
 распакуй и открой `index.html` (или файл `nikita-game.html` — это вся игра в одном файле).
 
@@ -30,6 +38,18 @@
 ```bash
 python3 tools/build-single.py   # пересобрать nikita-game.html после изменений
 ```
+
+## Сборка APK и EXE
+
+```bash
+# APK (без Android SDK): нужен classes.dex из tools/android/src (javac + dx) и pip install cryptography
+python3 tools/android/build_apk.py --dex classes.dex      # → dist/NikitaEatsAll.apk
+# EXE: Go 1.24+ и go install github.com/tc-hib/go-winres@latest
+tools/windows/build.sh                                     # → dist/NikitaEatsAll.exe
+```
+
+`tools/android/debug-signing-key.pem` — отладочный ключ подписи APK. Пусть лежит в репозитории:
+новые версии APK, подписанные тем же ключом, ставятся поверх старой с сохранением прогресса.
 
 ## 📷 Куда вставить фото Никиты
 

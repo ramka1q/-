@@ -89,6 +89,7 @@ const Game = {
   pause() { if (this.state === 'play') { this.state = 'pause'; Sound.play('click'); } },
   resume() { if (this.state === 'pause') { this.state = 'play'; this.last = performance.now(); } },
   toggleFullscreen() {
+    if (window.nikitaFullscreen) { window.nikitaFullscreen(); return; } // Windows-версия (EXE)
     const d = document, el = d.documentElement;
     try {
       if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
@@ -149,7 +150,9 @@ const Game = {
   resize() {
     this.sw = window.innerWidth; this.sh = window.innerHeight;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (this.sw * this.sh * dpr * dpr > 4.5e6) dpr = Math.sqrt(4.5e6 / (this.sw * this.sh));
+    const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    const maxPx = coarse ? 2.4e6 : 4.5e6; // телефоны: меньше пикселей — плавнее
+    if (this.sw * this.sh * dpr * dpr > maxPx) dpr = Math.sqrt(maxPx / (this.sw * this.sh));
     this.dpr = Math.max(1, dpr);
     this.canvas.width = Math.round(this.sw * this.dpr); this.canvas.height = Math.round(this.sh * this.dpr);
     this.canvas.style.width = this.sw + 'px'; this.canvas.style.height = this.sh + 'px';
@@ -259,6 +262,7 @@ const Game = {
       this.keys[e.code] = true;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
+      if (e.code === 'F11' && window.nikitaFullscreen) { e.preventDefault(); this.toggleFullscreen(); return; }
       const st = this.state;
       if (st === 'play') {
         if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') inp.dash = true;
