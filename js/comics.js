@@ -217,9 +217,21 @@ const Comic = {
   pageRect(sw, sh) {
     const m = Math.min(sw, sh) * 0.04;
     let w = sw - m * 2, h = sh - m * 2 - 30;
+    this.portrait = sh > sw * 1.15;
+    if (this.portrait) return { x: m, y: m, w, h: h - 10 };
     const asp = 16 / 10;
     if (w / h > asp) w = h * asp; else h = w / asp;
     return { x: (sw - w) / 2, y: (sh - h) / 2 - 10, w, h };
+  },
+  // В портретном режиме панели выстраиваются столбиком
+  panelRects(pg, R) {
+    const gut = Math.min(R.w, R.h) * 0.018;
+    if (!this.portrait) return pg.panels.map(p => { const [px, py, pw, ph] = p.rect; return { x: R.x + px * R.w + gut / 2, y: R.y + py * R.h + gut / 2, w: pw * R.w - gut, h: ph * R.h - gut }; });
+    const hs = pg.panels.map(p => R.w * (p.rect[3] * 10) / (p.rect[2] * 16));
+    const tot = hs.reduce((a, b) => a + b, 0);
+    const k = Math.min(1.25, (R.h - gut * pg.panels.length) / tot);
+    let y = R.y + Math.max(0, (R.h - tot * k - gut * pg.panels.length) / 2);
+    return hs.map(h => { const r = { x: R.x + gut / 2, y, w: R.w - gut, h: h * k }; y += h * k + gut; return r; });
   },
   draw(ctx, sw, sh, gt) {
     // фон «стол с бумагой»
@@ -242,18 +254,19 @@ const Comic = {
     }
     // подсказки
     const pg = this.pages[this.pi];
-    const fs = U.clamp(sh * 0.022, 12, 18);
+    const fs = U.clamp(Math.min(sh * 0.022, sw * 0.03), 11, 18);
+    const small = sw < 640;
     ctx.save();
     if (this.t >= pg._end && tr === 0) {
       const a = 0.6 + 0.4 * Math.sin(gt * 5);
       ctx.globalAlpha = a;
-      HUD.text(ctx, (this.pi + 1 >= this.pages.length ? 'Играть ▶' : 'Дальше ▶') + '  (клик / пробел)', R.x + R.w, R.y + R.h + fs * 1.6, fs * 1.15, '#ffe066', 'right');
+      HUD.text(ctx, (this.pi + 1 >= this.pages.length ? 'Играть ▶' : 'Дальше ▶') + (small ? '' : '  (клик / пробел)'), R.x + R.w, R.y + R.h + fs * 1.6, fs * 1.15, '#ffe066', 'right');
     }
     ctx.globalAlpha = 0.8;
-    HUD.text(ctx, 'Пропустить ⏭ (Esc)', R.x, R.y + R.h + fs * 1.6, fs, '#b8b5ff', 'left', OL, 700);
+    HUD.text(ctx, small ? 'Пропустить ⏭' : 'Пропустить ⏭ (Esc)', R.x, R.y + R.h + fs * 1.6, fs, '#b8b5ff', 'left', OL, 700);
     HUD.text(ctx, (this.pi + 1) + ' / ' + this.pages.length, R.x + R.w / 2, R.y + R.h + fs * 1.6, fs, '#b8b5ff', 'center', OL, 700);
     ctx.restore();
-    this.skipRect = { x: R.x, y: R.y + R.h + fs * 0.3, w: 200, h: fs * 2 };
+    this.skipRect = { x: R.x, y: R.y + R.h + fs * 0.3, w: small ? 110 : 200, h: fs * 2.2 };
     // звук печати
     let chars = 0;
     for (const p of pg.panels) for (const b of (p.bubbles || [])) chars += U.clamp(Math.floor((this.t - b._at) * 42), 0, b.text.length);
@@ -267,13 +280,11 @@ const Comic = {
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
     ctx.fillStyle = '#fdf6e3'; ctx.fillRect(R.x - 12, R.y - 12, R.w + 24, R.h + 24);
     ctx.restore();
-    const gut = Math.min(R.w, R.h) * 0.018;
-    pg.panels.forEach(p => {
+    const rects = this.panelRects(pg, R);
+    pg.panels.forEach((p, i) => {
       if (t < p._at) return;
       const k = U.clamp((t - p._at) / 0.5, 0, 1);
-      const [px, py, pw, ph] = p.rect;
-      const r = { x: R.x + px * R.w + gut / 2, y: R.y + py * R.h + gut / 2, w: pw * R.w - gut, h: ph * R.h - gut };
-      this.drawPanel(ctx, p, r, t - p._at, k, gt);
+      this.drawPanel(ctx, p, rects[i], t - p._at, k, gt);
     });
   },
 

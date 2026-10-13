@@ -196,11 +196,13 @@ const Game = {
   },
 
   drawTouchButtons(ctx, sw, sh) {
-    const r = Math.min(sw, sh) * 0.08, x = r * 1.4, y = sh - r * 1.4 - 50;
+    const r = Math.max(30, Math.min(sw, sh) * 0.085);
+    const mm = (sw < 700 ? 110 : 170) * U.clamp(Math.min(sw, sh) / 800, 0.7, 1.4);
+    const x = sw - r * 1.3, y = sh - mm - r * 1.6 - 20;
     this.touchDash = { x, y, r };
     ctx.save(); ctx.globalAlpha = 0.55; circ(ctx, x, y, r, '#9b5cff', '#fff', 3); ctx.restore();
     HUD.text(ctx, '⚡', x, y + r * 0.3, r * 0.9, '#fff', 'center', null);
-    const px = sw - r * 1.0, py = r * 2.3;
+    const px = x, py = y - r * 2.1;
     this.touchPause = { x: px, y: py, r: r * 0.55 };
     ctx.save(); ctx.globalAlpha = 0.5; circ(ctx, px, py, r * 0.55, '#495057', '#fff', 2); ctx.restore();
     HUD.text(ctx, 'II', px, py + r * 0.2, r * 0.5, '#fff', 'center', null);

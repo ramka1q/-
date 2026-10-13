@@ -636,7 +636,7 @@ const LevelBG = {
     },
   },
 };
-LevelBG.table = LevelBG.rectPat('wood', 900, '#2b2118');
+LevelBG.table = LevelBG.rectPat('wood', 600, '#2b2118');
 LevelBG.office = LevelBG.rectPat('floortiles', 260, '#1d1f26');
 LevelBG.workshop = LevelBG.rectPat('concrete', 900, '#1d1f26');
 LevelBG.city = LevelBG.rectPat('grass', 700, '#1d2b1d');

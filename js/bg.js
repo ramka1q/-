@@ -20,7 +20,7 @@ const BG = {
         c.strokeStyle = 'rgba(90,50,20,0.18)'; c.lineWidth = 2;
         for (let k = 0; k < 7; k++) { c.beginPath(); const y0 = p * N / 4 + 8 + k * 16 + r() * 6; c.moveTo(0, y0); for (let x = 0; x <= N; x += 32) c.lineTo(x, y0 + Math.sin(x * 0.02 + k + p) * 4); c.stroke(); }
         c.fillStyle = 'rgba(60,30,10,0.35)'; c.fillRect(0, p * N / 4, N, 3);
-        if (r() < 0.7) { const kx = r() * N, ky = p * N / 4 + 30 + r() * 60; ell(c, kx, ky, 14, 7, 0, 'rgba(100,55,20,0.4)', 'rgba(70,35,10,0.4)', 2); }
+
       }
     },
     floortiles(c, N, r) {

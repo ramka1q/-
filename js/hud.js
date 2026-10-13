@@ -17,7 +17,8 @@ const HUD = {
     const P = L.P;
     ctx.save();
     // --- шкала размера ---
-    const bw = Math.min(sw * 0.42, 520 * sc), bh = 18 * sc, bx = sw / 2 - bw / 2, by = 16 * sc;
+    const narrow = sw < 720;
+    const bw = narrow ? sw - 60 * sc : Math.min(sw * 0.42, 520 * sc), bh = 18 * sc, bx = sw / 2 - bw / 2, by = 16 * sc;
     this.panel(ctx, bx - 14 * sc, by - 8 * sc, bw + 28 * sc, bh + 34 * sc, 14 * sc);
     const goal = L.def.goal.r, start = L.def.start.r;
     const k = U.clamp(Math.log(P.r / start) / Math.log(goal / start), 0, 1);
@@ -32,6 +33,7 @@ const HUD = {
     this.text(ctx, L.def.name, sw / 2, by + bh + 17 * sc, 13 * sc, '#b8b5ff', 'center', OL, 700);
     // --- таймер / очки ---
     const rx = sw - 16 * sc;
+    ctx.save(); if (narrow) ctx.translate(0, by + bh + 32 * sc);
     this.panel(ctx, rx - 170 * sc, 10 * sc, 170 * sc, 68 * sc, 14 * sc);
     const m = L.def.medals || [120, 240];
     const medal = L.time <= m[0] ? 0 : L.time <= m[1] ? 1 : 2;
@@ -47,13 +49,14 @@ const HUD = {
       this.text(ctx, 'КОМБО ×' + L.combo, 0, 0, 18 * sc, L.combo > 10 ? '#ff6bd6' : '#ffd43b', 'center');
       ctx.restore();
     }
+    ctx.restore();
     // --- цели ---
-    let oy = 18 * sc;
+    let oy = narrow ? by + bh + 48 * sc : 18 * sc;
     const ox = 14 * sc;
     const objs = L.objectives;
     if (objs.length) {
       ctx.font = `700 ${12.5 * sc}px ${FONT}`;
-      const ow = U.clamp(Math.max(...objs.map(o => ctx.measureText((o.text || '') + ' (00/00)').width)) + 50 * sc, 200 * sc, Math.min(380 * sc, sw * 0.3)), oh = (26 + objs.length * 22) * sc;
+      const ow = U.clamp(Math.max(...objs.map(o => ctx.measureText((o.text || '') + ' (00/00)').width)) + 50 * sc, Math.min(200 * sc, sw * 0.5), narrow ? sw - 200 * sc : Math.min(380 * sc, sw * 0.3)), oh = (26 + objs.length * 22) * sc;
       this.panel(ctx, ox, oy - 6 * sc, ow, oh, 12 * sc);
       this.text(ctx, 'ЦЕЛИ', ox + 12 * sc, oy + 12 * sc, 12 * sc, '#b8b5ff', 'left', null, 800);
       objs.forEach((o, i) => {
@@ -120,9 +123,11 @@ const HUD = {
       const a = Math.min(1, ts.t * 6, (ts.dur - ts.t) * 3);
       const pop = U.ease.outBack(Math.min(1, ts.t * 4));
       ctx.save(); ctx.globalAlpha = a;
-      const y = sh * 0.22 + i * 40 * sc;
+      const y = (L.time < 3.2 ? sh * 0.6 : sh * 0.22) + i * 40 * sc;
       ctx.translate(sw / 2, y); ctx.scale(pop, pop);
       ctx.font = `900 ${20 * sc}px ${FONT}`;
+      const fit = Math.min(1, (sw - 24) / (ctx.measureText(ts.text).width + 30 * sc));
+      ctx.scale(fit, fit);
       const w = ctx.measureText(ts.text).width + 30 * sc;
       rect(ctx, -w / 2, -22 * sc, w, 34 * sc, 17 * sc, 'rgba(20,18,40,0.85)', ts.col, 2.5);
       this.text(ctx, ts.text, 0, 1 * sc, 20 * sc, U.shade(ts.col, 0.55), 'center', null);
@@ -140,7 +145,7 @@ const HUD = {
     if (L.time < 3.2) {
       const a = Math.min(1, L.time * 3, (3.2 - L.time) * 2);
       const k = U.ease.outBack(Math.min(1, L.time * 2.5));
-      ctx.save(); ctx.globalAlpha = a; ctx.translate(sw / 2, sh * 0.36); ctx.scale(k, k);
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(sw / 2, sh * 0.3); ctx.scale(k * Math.min(1, sw / (560 * sc)), k * Math.min(1, sw / (560 * sc)));
       this.text(ctx, L.def.chapter, 0, -40 * sc, 16 * sc, '#d0bfff', 'center', OL, 800);
       this.text(ctx, L.def.name.toUpperCase(), 0, 8 * sc, 48 * sc, '#fff', 'center');
       ctx.font = `700 ${15 * sc}px ${FONT}`;
