@@ -88,6 +88,13 @@ const Game = {
   },
   pause() { if (this.state === 'play') { this.state = 'pause'; Sound.play('click'); } },
   resume() { if (this.state === 'pause') { this.state = 'play'; this.last = performance.now(); } },
+  toggleFullscreen() {
+    const d = document, el = d.documentElement;
+    try {
+      if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    } catch (e) { /* iPhone: используй «На экран Домой» */ }
+  },
   toggleMute() { this.save.settings.mute = !this.save.settings.mute; Sound.setMuted(this.save.settings.mute); this.store(); },
   finishLevel(win) {
     const L = this.world, i = this.levelIdx, def = LEVELS[i];
@@ -278,4 +285,8 @@ const Game = {
   },
 };
 
-window.addEventListener('load', () => Game.init());
+window.addEventListener('load', () => {
+  Game.init();
+  // офлайн-режим и установка на телефон (работает, когда игра открыта по http/https)
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.NIKITA_SINGLE) navigator.serviceWorker.register('sw.js').catch(() => { });
+});

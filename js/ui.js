@@ -82,6 +82,7 @@ const UI = {
     by += bh * 1.22;
     this.btn(ctx, 'sound', bx, by, bw * 0.48, bh * 0.8, Game.save.settings.mute ? '🔇 Звук' : '🔊 Звук', { col: '#868e96', fs: bh * 0.3, cb: () => Game.toggleMute() });
     this.btn(ctx, 'credits', bx + bw * 0.52, by, bw * 0.48, bh * 0.8, '🎬 Титры', { col: '#868e96', fs: bh * 0.3, cb: () => Game.go('credits') });
+    if (document.fullscreenEnabled || document.webkitFullscreenEnabled) this.btn(ctx, 'fs', sw - 64, 14, 50, 50, '⛶', { col: '#495057', fs: 26, cb: () => Game.toggleFullscreen() });
     // учёные внизу
     if (sw > sh) {
       const who = ['egor', 'danya', 'pylypyuk', 'dima', 'kirill', 'natasha', 'molgelevich'];
@@ -227,7 +228,8 @@ const UI = {
     let y = sh * 0.38;
     this.btn(ctx, 'resume', sw / 2 - bw / 2, y, bw, bh, '▶ Продолжить', { col: '#ff6bd6', cb: () => Game.resume() }); y += bh * 1.25;
     this.btn(ctx, 'restart', sw / 2 - bw / 2, y, bw, bh, '↻ Заново', { col: '#4dabf7', cb: () => Game.playLevel(Game.levelIdx) }); y += bh * 1.25;
-    this.btn(ctx, 'mute', sw / 2 - bw / 2, y, bw, bh, Game.save.settings.mute ? '🔇 Звук выкл' : '🔊 Звук вкл', { col: '#868e96', cb: () => Game.toggleMute() }); y += bh * 1.25;
+    this.btn(ctx, 'mute', sw / 2 - bw / 2, y, bw * 0.62, bh, Game.save.settings.mute ? '🔇 Звук выкл' : '🔊 Звук вкл', { col: '#868e96', fs: bh * 0.36, cb: () => Game.toggleMute() });
+    this.btn(ctx, 'fs2', sw / 2 - bw / 2 + bw * 0.66, y, bw * 0.34, bh, '⛶', { col: '#868e96', cb: () => Game.toggleFullscreen() }); y += bh * 1.25;
     this.btn(ctx, 'tomenu', sw / 2 - bw / 2, y, bw, bh, '⌂ В меню', { col: '#495057', cb: () => Game.go('menu') });
   },
 
