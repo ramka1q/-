@@ -130,8 +130,32 @@ const BEH = {
     if (it.cone) BEH.coneCheck(it, dt, L, a);
     if (it.hz && !L.canEat(it)) { /* урон через касание обрабатывает playerVsItems */ }
   },
-  traffic(it, dt, L) { // машины: едут по маршруту, если Никита большой — объезжают нет: просто едут
-    BEH.patrol(it, dt, L);
+  traffic(it, dt, L) { BEH.patrol(it, dt, L); },
+  // Машина с соблюдением ПДД: стоит на красный, не въезжает в машину впереди
+  car(it, dt, L) {
+    const path = it.path, i = it.data.pi || 0, [tx, ty] = path[i % path.length];
+    const a = U.angle(it.x, it.y, tx, ty), d = U.dist(it.x, it.y, tx, ty);
+    const hx = Math.cos(a), hy = Math.sin(a);
+    let stop = false;
+    if (L.data.inters) for (const I of L.data.inters) {
+      const dx = I.x - it.x, dy = I.y - it.y;
+      const along = dx * hx + dy * hy;
+      if (along < 95 || along > 95 + it.r + 70) continue;
+      if (Math.abs(-dx * hy + dy * hx) > 140) continue;
+      if (cityLight(L, I, Math.abs(hx) > Math.abs(hy)) !== 'green') { stop = true; break; }
+    }
+    if (!stop) for (const o of L.items) {
+      if (o === it || o.dead || o.beh !== 'car') continue;
+      const dx = o.x - it.x, dy = o.y - it.y; if (Math.abs(dx) > 260 || Math.abs(dy) > 260) continue;
+      const along = dx * hx + dy * hy;
+      if (along > 0 && along < it.r + o.r + 25 && Math.abs(-dx * hy + dy * hx) < 45) { stop = true; break; }
+    }
+    it.data.k = U.approach(it.data.k === undefined ? 1 : it.data.k, stop ? 0 : 1, dt * 3);
+    const s = it.spd * it.r * it.data.k;
+    it.x += hx * Math.min(s * dt, d); it.y += hy * Math.min(s * dt, d);
+    if (d < s * dt + 1) it.data.pi = (i + 1) % path.length;
+    it.rot += U.angDiff(it.rot, a) * Math.min(1, dt * 5);
+    it.heading = a;
   },
   orbit(it, dt, L) {
     const o = it.orbit;
@@ -484,7 +508,7 @@ const TrigDraw = {
   },
   sign(ctx, tr, z, t) {
     if (tr.hidden || tr.invisible) return;
-    const r = tr.r * 0.25;
+    const r = Math.min(tr.r * 0.25, 20);
     ctx.save(); ctx.globalAlpha = tr.shown ? 0.4 : 0.9;
     circ(ctx, tr.x, tr.y + Math.sin(t * 3) * r * 0.2, r, '#ffd43b', OL, r * 0.12);
     ctx.fillStyle = OL; ctx.font = `900 ${r * 1.3}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', tr.x, tr.y + Math.sin(t * 3) * r * 0.2 + r * 0.05);
@@ -645,3 +669,93 @@ LevelBG.base = LevelBG.rectPat('dirt', 900, '#2b2418');
 LevelBG.ocean = LevelBG.rectPat('ocean', 1400, '#06233f');
 LevelBG.volcano = LevelBG.rectPat('volcrock', 1000, '#1a120e');
 LevelBG.earth = LevelBG.rectPat('ocean', 3000, '#06233f');
+
+// ---------- платформы паркура ----------
+function PlatDraw(ctx, p, z, t, L) {
+  if (p.gone) {
+    ctx.save(); ctx.globalAlpha = 0.25; ctx.setLineDash([12, 10]); ctx.strokeStyle = '#ffa94d'; ctx.lineWidth = 4;
+    if (p.shape === 'circ') { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.stroke(); } else ctx.strokeRect(p.x, p.y, p.w, p.h);
+    ctx.restore(); return;
+  }
+  ctx.save();
+  let sx = 0, sy = 0;
+  if (p.kind === 'crumble' && p.ct > 0) { const a = p.ct * 6; sx = (Math.random() - 0.5) * a; sy = (Math.random() - 0.5) * a; }
+  ctx.translate(sx, sy);
+  const lw = Math.max(2 / z, 5);
+  if (p.shape === 'circ') { // батут
+    circ(ctx, p.x, p.y, p.r, '#343a40', OL, lw);
+    circ(ctx, p.x, p.y, p.r * 0.82, rg(ctx, p.x, p.y, p.r, ['#ffe066', '#fcc419', '#e67700']), OL, lw * 0.6);
+    for (let i = 1; i < 4; i++) circ(ctx, p.x, p.y, p.r * 0.2 * i, null, 'rgba(0,0,0,0.25)', lw * 0.5);
+    if (p.kind === 'spring') {
+      const k = 0.5 + 0.5 * Math.sin(t * 6);
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.dir);
+      ctx.globalAlpha = 0.6 + 0.4 * k;
+      for (let i = 0; i < 3; i++) poly(ctx, [p.r * (0.9 + i * 0.35), -p.r * 0.25, p.r * (1.15 + i * 0.35), 0, p.r * (0.9 + i * 0.35), p.r * 0.25], '#ffd43b', OL, lw * 0.5);
+      ctx.restore();
+    }
+    ctx.restore(); return;
+  }
+  const { x, y, w, h } = p;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  if (p.kind === 'conveyor') {
+    ZoneDraw.conveyor(ctx, { x, y, w, h, dx: p.cdx, dy: p.cdy }, z, t);
+  } else if (p.kind === 'crumble') {
+    ctx.fillStyle = '#8a4b2a'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#5c3018'; ctx.lineWidth = Math.max(1 / z, 4);
+    const s = Math.max(28, Math.min(w, h) / 6);
+    for (let i = x; i < x + w; i += s) { ctx.beginPath(); ctx.moveTo(i, y); ctx.lineTo(i, y + h); ctx.stroke(); }
+    for (let j = y; j < y + h; j += s) { ctx.beginPath(); ctx.moveTo(x, j); ctx.lineTo(x + w, j); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,150,60,0.25)'; for (let i = 0; i < 4; i++) ctx.fillRect(x + w * ((i * 0.37) % 1), y + h * ((i * 0.61) % 1), s * 0.8, s * 0.5);
+    if (p.ct > 0) { ctx.fillStyle = `rgba(255,60,0,${Math.min(0.5, p.ct * 0.6)})`; ctx.fillRect(x, y, w, h); }
+  } else {
+    BG.fillPattern(ctx, p.style === 'floor' ? 'concrete' : 'metalwall', p.style === 'floor' ? 500 : 260, x, y, w, h, z);
+    if (p.style === 'girder') {
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = Math.max(1 / z, 6);
+      const s = Math.min(w, h);
+      for (let i = x - h; i < x + w; i += s) { ctx.beginPath(); ctx.moveTo(i, y); ctx.lineTo(i + h, y + h); ctx.stroke(); }
+    }
+  }
+  ctx.restore();
+  // кромка
+  if (p.path || p.style === 'lift') BG.drawFloor(ctx, [{ k: 'stripes', x, y, w, h: Math.min(26, h * 0.12), s: 18 }, { k: 'stripes', x, y: y + h - Math.min(26, h * 0.12), w, h: Math.min(26, h * 0.12), s: 18 }], { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }, z, t);
+  ctx.strokeStyle = p.kind === 'crumble' ? '#3d1c0c' : '#1e2128'; ctx.lineWidth = lw; ctx.strokeRect(x, y, w, h);
+  if (p.style !== 'floor') for (const [cx, cy] of [[x + 14, y + 14], [x + w - 14, y + 14], [x + 14, y + h - 14], [x + w - 14, y + h - 14]]) circ(ctx, cx, cy, 5, '#adb5bd', null);
+  ctx.restore();
+}
+TrigDraw.checkpoint = (ctx, tr, z, t) => {
+  const r = tr.r;
+  ell(ctx, tr.x, tr.y + r * 0.5, r * 0.6, r * 0.2, 0, 'rgba(0,0,0,0.3)', null);
+  line(ctx, tr.x, tr.y + r * 0.5, tr.x, tr.y - r * 1.2, OL, r * 0.12);
+  const wave = Math.sin(t * 6) * r * 0.08;
+  poly(ctx, [tr.x, tr.y - r * 1.2, tr.x + r * 0.9, tr.y - r * 0.95 + wave, tr.x, tr.y - r * 0.7], tr.active ? '#69db7c' : '#ff6b6b', OL, r * 0.06);
+};
+// Пропасть: тёмная бездна с огоньками внизу (экранный параллакс)
+LevelBG.pit = {
+  screen(ctx, L, sw, sh, t) {
+    ctx.fillStyle = '#08090f'; ctx.fillRect(0, 0, sw, sh);
+    const z = L.cam.zoom;
+    for (let layer = 1; layer <= 2; layer++) {
+      const par = 0.25 * layer, step = 260 * layer;
+      const ox = ((-L.cam.x * z * par) % step + step) % step, oy = ((-L.cam.y * z * par) % step + step) % step;
+      ctx.strokeStyle = layer === 1 ? 'rgba(80,90,110,0.18)' : 'rgba(80,90,110,0.32)'; ctx.lineWidth = 3 * layer;
+      for (let x = ox - step; x < sw + step; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, sh); ctx.stroke(); }
+      for (let y = oy - step; y < sh + step; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(sw, y); ctx.stroke(); }
+      for (let x = ox - step; x < sw + step; x += step) for (let y = oy - step; y < sh + step; y += step) {
+        const on = Math.sin(t * 2 + x * 0.013 + y * 0.007 + layer) > 0.3;
+        ctx.fillStyle = on ? (layer === 1 ? 'rgba(255,170,60,0.35)' : 'rgba(255,90,60,0.55)') : 'rgba(255,255,255,0.05)';
+        ctx.fillRect(x - 2 * layer, y - 2 * layer, 4 * layer, 4 * layer);
+      }
+    }
+  },
+  world(ctx, L, v, z, t) {
+    ctx.strokeStyle = 'rgba(255,212,59,0.25)'; ctx.lineWidth = 8 / z; ctx.strokeRect(0, 0, L.W, L.H);
+  },
+};
+
+// Состояние светофора перекрёстка для оси движения: 'green' | 'yellow' | 'red'
+function cityLight(L, I, horiz) {
+  if (I.red > 0) return 'red';
+  const p = (L.time + I.off) % 12;
+  if (horiz) return p < 5 ? 'green' : p < 6 ? 'yellow' : 'red';
+  return p >= 6 && p < 11 ? 'green' : p >= 11 ? 'yellow' : 'red';
+}

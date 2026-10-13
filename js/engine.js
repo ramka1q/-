@@ -76,6 +76,7 @@ class World {
     this.rng = U.rng(def.seed || 12345);
     this.items = []; this.walls = []; this.lasers = []; this.zones = []; this.triggers = [];
     this.projs = []; this.parts = []; this.floats = []; this.eating = []; this.warns = []; this.floor = [];
+    this.plats = []; this.checkpoint = { x: def.start.x, y: def.start.y };
     this.byId = {}; this.flags = {}; this.keys = {}; this.data = {}; this.uidc = 0; this.clearRects = [];
     this.time = 0; this.score = 0; this.combo = 0; this.comboT = 0; this.capture = 0;
     this.toasts = []; this.radioQ = []; this.radioCur = null; this.boss = null;
@@ -84,7 +85,7 @@ class World {
     this.stats = { eaten: 0, biggest: '', hurt: 0 };
     const st = def.start;
     this.P = { x: st.x, y: st.y, vx: 0, vy: 0, r: st.r, rd: st.r, dir: 0, spd01: 0, inv: 0, stun: 0, slow: 0, freeze: 0,
-      dashT: 0, dashCD: 0, dashDir: 0, chomp: 0, color: null, pw: { speed: 0, magnet: 0, shield: 0 }, hurtT: 0, lastPort: 0 };
+      dashT: 0, dashCD: 0, dashDir: 0, chomp: 0, air: 0, falling: 0, color: null, pw: { speed: 0, magnet: 0, shield: 0 }, hurtT: 0, lastPort: 0 };
     this.minR = st.r * (def.minK || 0.7);
     this.W = def.world.w; this.H = def.world.h;
     this.cam = { x: st.x, y: st.y, zoom: 1, shake: 0, sx: 0, sy: 0 };
@@ -112,7 +113,11 @@ class World {
 
   // ---------- утилиты ----------
   sizeText(r) { return U.formatSize(r * 2 * this.def.unit); }
-  toast(text, col = '#fff', dur = 2.6) { this.toasts.push({ text, col, t: 0, dur }); if (this.toasts.length > 4) this.toasts.shift(); }
+  toast(text, col = '#fff', dur = 2.6) {
+    const ex = this.toasts.find(t => t.text === text);
+    if (ex) { ex.t = Math.min(ex.t, 0.3); ex.dur = Math.max(ex.dur, dur); return; }
+    this.toasts.push({ text, col, t: 0, dur }); if (this.toasts.length > 4) this.toasts.shift();
+  }
   radio(who, text, expr = 'normal', dur = 0) {
     if (this.radioQ.length > 4) return;
     this.radioQ.push({ who, text, expr, dur: dur || Math.max(2.8, text.length * 0.055 + 1.5), t: 0 });
@@ -341,13 +346,15 @@ class World {
     this.time += dt;
     const P = this.P;
     // таймеры
-    P.inv -= dt; P.stun -= dt; P.slow -= dt; P.freeze -= dt; P.dashCD -= dt; P.hurtT -= dt; P.lastPort -= dt;
+    P.inv -= dt; P.stun -= dt; P.slow -= dt; P.freeze -= dt; P.dashCD -= dt; P.hurtT -= dt; P.lastPort -= dt; P.air = Math.max(0, P.air - dt);
     for (const k in P.pw) P.pw[k] = Math.max(0, P.pw[k] - dt);
     P.chomp = Math.max(0, P.chomp - dt * 4);
     this.comboT -= dt; if (this.comboT <= 0) this.combo = 0;
     this.capture = Math.max(0, this.capture - dt * 0.04);
 
+    if (this.def.pit) this.updatePlats(dt);
     this.updatePlayer(dt, input);
+    if (this.def.pit) this.playerPlatform(dt);
     this.updateZones(dt);
     this.updateTriggers(dt);
     this.updateItems(dt);
@@ -380,6 +387,7 @@ class World {
 
   updatePlayer(dt, input) {
     const P = this.P;
+    if (P.falling > 0) { this.pushX = 0; this.pushY = 0; return; }
     let mx = 0, my = 0, mag = 0;
     if (P.stun <= 0) {
       if (input.kx || input.ky) { const l = Math.hypot(input.kx, input.ky); mx = input.kx / l; my = input.ky / l; mag = 1; }
@@ -396,12 +404,15 @@ class World {
     const spd = P.r * BASE_SPD * mult;
     // рывок
     if (input.dash && P.dashCD <= 0 && P.stun <= 0) {
-      P.dashT = 0.26; P.dashCD = 1.5;
+      P.dashT = this.def.pit ? 0.38 : 0.26; P.dashCD = this.def.pit ? 0.75 : 1.5;
       P.dashDir = mag > 0.05 ? Math.atan2(my, mx) : P.dir;
       Sound.play('dash');
     }
-    let k = this.onIce ? 1.4 : 9;
-    if (P.dashT > 0) {
+    let k = this.onIce ? 1.4 : (this.def.swim || 9);
+    if (P.air > 0 && P.launch) {
+      P.vx = P.launch.vx; P.vy = P.launch.vy;
+      if (Math.random() < 0.4) this.part('dot', P.x, P.y, 0, 0, P.r * 0.25, '#ffd43b', 0.3);
+    } else if (P.dashT > 0) {
       P.dashT -= dt;
       P.vx = Math.cos(P.dashDir) * spd * 3.1; P.vy = Math.sin(P.dashDir) * spd * 3.1;
       if (Math.random() < 0.6) this.part('dot', P.x, P.y, -P.vx * 0.1, -P.vy * 0.1, P.r * 0.3, P.color ? PAINT[P.color] : '#b07cff', 0.35);
@@ -530,6 +541,11 @@ class World {
           }
           break;
         case 'simon': Puzzles.simonUpdate(this, tr, dt); break;
+        case 'checkpoint': {
+          const onPl = this.def.pit && P.falling <= 0 && P.dashT <= 0 && P.air <= 0 && this.platAt(P.x, P.y, 0) && this.platAt(P.x, P.y, 0) === this.platAt(tr.x, tr.y, 0);
+          if ((on || onPl) && !tr.active) { for (const q of this.triggers) if (q.k === 'checkpoint') q.active = false; tr.active = true; this.checkpoint = { x: tr.x, y: tr.y }; Sound.play('chime'); this.toast('Чекпоинт!', '#69db7c', 1.4); }
+          break;
+        }
       }
     }
   }
@@ -574,8 +590,99 @@ class World {
   // Движение существа с учётом стен
   moveActor(it, vx, vy, dt) {
     it.vx = vx; it.vy = vy;
+    const ox = it.x, oy = it.y;
     it.x += (vx + (it.pushX || 0)) * dt; it.y += (vy + (it.pushY || 0)) * dt;
+    if (this.def.pit && !it.fly && !this.platAt(it.x, it.y, -it.r * 0.3, true)) { it.x = ox; it.y = oy; return true; }
     return this.collideWalls(it);
+  }
+
+  // ============================================================
+  //  ПЛАТФОРМЫ (паркур над пропастью)
+  // ============================================================
+  // Платформа под точкой; особые (батут, лифт, конвейер, решётка) важнее обычного пола
+  platAt(x, y, m = 0, solidOnly = false) {
+    let base = null;
+    for (const p of this.plats) {
+      if (p.gone) continue;
+      const special = p.path || p.kind !== 'static';
+      if (solidOnly && (p.path || p.kind === 'crumble' || p.kind === 'spring')) continue;
+      let hit;
+      if (p.shape === 'circ') hit = U.dist(x, y, p.x, p.y) < p.r + (p.kind === 'spring' ? Math.min(m, 0) : m);
+      else hit = x > p.x - m && x < p.x + p.w + m && y > p.y - m && y < p.y + p.h + m;
+      if (!hit) continue;
+      if (special) return p;
+      if (!base) base = p;
+    }
+    return base;
+  }
+  updatePlats(dt) {
+    for (const p of this.plats) {
+      p.dx = 0; p.dy = 0;
+      if (p.path) {
+        const k = (1 - Math.cos((this.time + (p.phase || 0)) * TAU / p.period)) / 2;
+        const nx = U.lerp(p.path[0][0], p.path[1][0], k), ny = U.lerp(p.path[0][1], p.path[1][1], k);
+        p.dx = nx - p.x; p.dy = ny - p.y; p.x = nx; p.y = ny;
+      }
+      if (p.kind === 'crumble') {
+        if (p.gone) { p.gt -= dt; if (p.gt <= 0) { p.gone = false; p.ct = 0; } }
+        else if (p.stood) {
+          p.ct = (p.ct || 0) + dt;
+          if (p.ct > (p.life || 0.9)) {
+            p.gone = true; p.gt = 4; Sound.play('crunch');
+            for (let i = 0; i < 14; i++) this.part('dot', p.x + Math.random() * p.w, p.y + Math.random() * p.h, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, Math.min(p.w, p.h) * 0.08, '#a0522d', 0.8);
+          }
+        } else p.ct = Math.max(0, (p.ct || 0) - dt * 0.5);
+        p.stood = false;
+      }
+    }
+  }
+  playerPlatform(dt) {
+    const P = this.P;
+    if (P.falling > 0) { P.falling -= dt; if (P.falling <= 0) this.respawnFall(); return; }
+    const air = P.dashT > 0 || P.air > 0;
+    if (!air) P.launch = null;
+    const p = this.platAt(P.x, P.y, P.r * 0.3);
+    if (p && !air) {
+      P.x += p.dx; P.y += p.dy;
+      if (p.kind === 'crumble') { p.stood = true; if (p.ct > 0.2) this.tip('crumble', 'Ржавая решётка рассыпается! Не стой на месте!', '#ffa94d'); }
+      if (p.kind === 'conveyor') { const s = P.r * BASE_SPD * (p.str || 0.5); this.pushX += p.cdx * s; this.pushY += p.cdy * s; }
+      if (p.kind === 'spring') {
+        P.air = p.air || 0.8; const sp = p.pow / P.air;
+        P.launch = { vx: Math.cos(p.dir) * sp, vy: Math.sin(p.dir) * sp };
+        Sound.play('pop'); Sound.play('dash'); this.cam.shake = 5;
+        this.burst(p.x, p.y, 12, '#ffd43b', P.r * 3, P.r * 0.1);
+      }
+      if (p.kind === 'ice') this.onIce = true;
+    } else if (!p && !air) {
+      P.falling = 0.7; P.vx *= 0.2; P.vy *= 0.2; P.inv = Math.max(P.inv, 0.8);
+      Sound.play('lose'); this.cam.shake = 6;
+    }
+  }
+  respawnFall() {
+    const P = this.P;
+    P.x = this.checkpoint.x; P.y = this.checkpoint.y; P.vx = P.vy = 0;
+    P.r = Math.max(this.minR, P.r * 0.95); P.rd = P.r;
+    P.inv = 1.5; P.dashT = 0; P.air = 0; P.launch = null; P.dashCD = 0;
+    this.stats.falls = (this.stats.falls || 0) + 1;
+    this.toast('Никита упал в шахту! Обратно к чекпоинту (−5%)', '#ffa8a8', 2.2);
+    if (this.def.onFall) this.def.onFall(this);
+  }
+  drawPlats(ctx, view, z, t) {
+    // тени
+    for (const p of this.plats) {
+      if (p.gone) continue;
+      const bx = p.shape === 'circ' ? p.x - p.r : p.x, by = p.shape === 'circ' ? p.y - p.r : p.y, bw = p.shape === 'circ' ? p.r * 2 : p.w, bh = p.shape === 'circ' ? p.r * 2 : p.h;
+      if (bx > view.x + view.w + 200 || bx + bw < view.x - 200 || by > view.y + view.h + 200 || by + bh < view.y - 200) continue;
+      const d = Math.min(bw, bh) * 0.12 + 30;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      if (p.shape === 'circ') { ctx.beginPath(); ctx.arc(p.x + d * 0.5, p.y + d, p.r, 0, TAU); ctx.fill(); }
+      else ctx.fillRect(bx + d * 0.5, by + d, bw, bh);
+    }
+    for (const p of this.plats) {
+      const bx = p.shape === 'circ' ? p.x - p.r : p.x, by = p.shape === 'circ' ? p.y - p.r : p.y, bw = p.shape === 'circ' ? p.r * 2 : p.w, bh = p.shape === 'circ' ? p.r * 2 : p.h;
+      if (bx > view.x + view.w || bx + bw < view.x || by > view.y + view.h || by + bh < view.y) continue;
+      PlatDraw(ctx, p, z, t, this);
+    }
   }
 
   updateProjs(dt) {
@@ -664,7 +771,8 @@ class World {
         const x = P.x + Math.cos(a) * d, y = P.y + Math.sin(a) * d;
         if (!this.inWorld(x, y, r)) continue;
         if (this.wallsNear(x, y, r).some(w => this.wallBlocks(w, false) && U.circleRect(x, y, r, w.x, w.y, w.w, w.h))) continue;
-        if (o[4] && !o[4](x, y)) continue;
+        if (o[4] && !o[4](x, y, this, r)) continue;
+        if (this.def.pit && !this.platAt(x, y, -r, true)) continue;
         const T = TYPES[o[0]] || {};
         this.spawn(o[0], x, y, r, Object.assign({ v: T.vN ? U.randInt(0, T.vN - 1) : 0 }, o[3] || {}));
         break;
@@ -726,6 +834,8 @@ class World {
       bgf.world(ctx, this, view, z, t);
     }
     if (this.floor.length) BG.drawFloor(ctx, this.floor, view, z, t);
+    if (this.plats.length) this.drawPlats(ctx, view, z, t);
+    if (this.def.drawUnder) this.def.drawUnder(ctx, this, view, z, t);
     this.drawZones(ctx, view, z, t);
     this.drawTriggers(ctx, view, z, t);
     // предметы
@@ -752,7 +862,16 @@ class World {
     this.drawProjs(ctx, z, t);
     // Никита
     const blinkHide = P.inv > 0 && Math.floor(t * 20) % 2 === 0 && P.hurtT < 0;
-    if (!blinkHide) Chars.nikita(ctx, P.x, P.y, P.rd, { t, chomp: P.chomp, dir: P.dir, speed: P.spd01, tint: P.color ? PAINT[P.color] : null, hurt: P.hurtT > 0, stun: P.stun > 0, shield: P.pw.shield > 0, dash: P.dashT > 0 });
+    let lift = 0, pscale = 1;
+    if (this.def.pit) {
+      if (P.falling > 0) { pscale = Math.max(0.05, P.falling / 0.7); }
+      else if (P.air > 0 && P.launch) { lift = Math.sin(Math.PI * (1 - P.air / 0.8)) * P.r * 1.2; }
+      else if (P.dashT > 0) { lift = Math.sin(Math.PI * (1 - P.dashT / 0.38)) * P.r * 0.7; }
+      if (lift > 0) { ctx.save(); ctx.globalAlpha = 0.35; ell(ctx, P.x, P.y + P.r * 0.3, P.r * 0.9, P.r * 0.5, 0, '#000', null); ctx.restore(); }
+    }
+    if (pscale < 1) { ctx.save(); ctx.translate(P.x, P.y); ctx.rotate((1 - pscale) * 6); ctx.scale(pscale, pscale); ctx.translate(-P.x, -P.y); }
+    if (!blinkHide) Chars.nikita(ctx, P.x, P.y - lift, P.rd * (1 + lift / (P.r * 6)), { t, chomp: P.chomp, dir: P.dir, speed: P.spd01, tint: P.color ? PAINT[P.color] : null, hurt: P.hurtT > 0, stun: P.stun > 0, shield: P.pw.shield > 0, dash: P.dashT > 0 });
+    if (pscale < 1) ctx.restore();
     if (P.stun > 0) { ctx.save(); ctx.globalAlpha = 0.8; ctx.strokeStyle = '#e8c35c'; ctx.lineWidth = P.r * 0.06; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(P.x + i * P.r * 0.3 - P.r, P.y - P.r); ctx.lineTo(P.x + i * P.r * 0.3 + P.r, P.y + P.r); ctx.stroke(); ctx.beginPath(); ctx.moveTo(P.x + i * P.r * 0.3 + P.r, P.y - P.r); ctx.lineTo(P.x + i * P.r * 0.3 - P.r, P.y + P.r); ctx.stroke(); } ctx.restore(); }
     if (P.freeze > 0) { ctx.save(); ctx.globalAlpha = 0.45; circ(ctx, P.x, P.y, P.rd * 1.05, '#a5d8ff', '#e7f5ff', P.r * 0.06); ctx.restore(); }
     if (this.def.drawOver) this.def.drawOver(ctx, this, view, z, t);
@@ -1029,6 +1148,11 @@ class Builder {
   sign(x, y, r, text, o = {}) { return this.trig('sign', x, y, r, Object.assign({ text }, o)); }
   event(x, y, r, act, o = {}) { return this.trig('event', x, y, r, Object.assign({ act }, o)); }
   portal(id, x, y, r, to, o = {}) { return this.trig('portal', x, y, r, Object.assign({ id, to }, o)); }
+  plat(x, y, w, h, o = {}) { const p = Object.assign({ shape: 'rect', x, y, w, h, kind: 'static', style: 'girder', dx: 0, dy: 0 }, o); if (p.path) { p.x = p.path[0][0]; p.y = p.path[0][1]; } this.L.plats.push(p); return p; }
+  platC(x, y, r, o = {}) { const p = Object.assign({ shape: 'circ', x, y, r, kind: 'static', style: 'pad', dx: 0, dy: 0 }, o); this.L.plats.push(p); return p; }
+  checkpoint(x, y, o = {}) { return this.trig('checkpoint', x, y, 45, o); }
+  // россыпь только по платформе
+  scatterOn(t, n, r0, r1, p, o = {}) { return this.scatter(t, n, r0, r1, { x: p.x + r1, y: p.y + r1, w: Math.max(1, p.w - r1 * 2), h: Math.max(1, p.h - r1 * 2) }, o); }
   key(color, x, y, r) { return this.item('keycard', x, y, r, { v: color, key: color, alwaysEat: true, glow: PAINT[color], bob: true, rotMode: 'none', noMag: true }); }
   pw(kind, x, y, r) { return this.item('pw_' + kind, x, y, r, { pw: kind, alwaysEat: true, glow: '#fff3bf', bob: true, rotMode: 'none' }); }
   floor(d) {

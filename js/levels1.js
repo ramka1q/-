@@ -53,6 +53,7 @@ function nearPlayer(L, spread = 3) {
 // ============================================================
 LEVELS.push({
   id: 'dish', name: 'Чашка Петри', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'egor', music: 'lab', bg: 'dish',
+  mech: { icon: '🍽', name: 'КЛАССИКА', text: 'Ешь всё, что меньше тебя, и расти. Уворачивайся от капель антибиотика.' },
   desc: 'Никита — микроб в чашке Петри. Ешь бактерии и расти!',
   unit: 1e-5, world: { w: 4200, h: 4200, shape: 'circle' }, start: { x: 2100, y: 2100, r: 10 }, goal: { r: 150 },
   growK: 0.12, medals: [180, 300], seed: 101, mmColor: 'rgba(210,170,70,0.85)', burp: 'Бактерии — на вкус как чипсы!',
@@ -121,6 +122,7 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'table', name: 'Стол Пилипюка', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'pylypyuk', music: 'lab', bg: 'table',
+  mech: { icon: '🎨', name: 'КРАСКИ', text: 'Наступай в лужи краски — барьер пропускает только Никиту своего цвета.' },
   desc: 'Химический стол. Меняй цвет в лужах краски, чтобы проходить сквозь барьеры.',
   unit: 1e-3, world: { w: 6400, h: 4200 }, start: { x: 600, y: 2100, r: 10 }, goal: { r: 170 },
   growK: 0.12, medals: [420, 660], seed: 202, mmColor: 'rgba(150,100,60,0.85)', burp: 'Микроскоп оказался хрустящим!',
@@ -206,209 +208,279 @@ LEVELS.push({
 });
 
 // ============================================================
-//  1-3. КОРИДОРЫ НИИ (Кирилл и Наташа, ключ-карты, «Саймон»)
+//  1-3. ЛАБИРИНТ НИИ — настоящий лабиринт с туманом на карте,
+//  ключ-картами в тупиках, лазерами Кирилла и заначкой за кодом
 // ============================================================
+function genMaze(cols, rows, seed, sc, sr) {
+  const R = U.rng(seed);
+  const right = [], bottom = [], vis = [];
+  for (let c = 0; c < cols; c++) { right.push(Array(rows).fill(true)); bottom.push(Array(rows).fill(true)); vis.push(Array(rows).fill(false)); }
+  const stack = [[sc, sr]]; vis[sc][sr] = true;
+  while (stack.length) {
+    const [c, r] = stack[stack.length - 1];
+    const nb = [];
+    if (c > 0 && !vis[c - 1][r]) nb.push([c - 1, r]);
+    if (c < cols - 1 && !vis[c + 1][r]) nb.push([c + 1, r]);
+    if (r > 0 && !vis[c][r - 1]) nb.push([c, r - 1]);
+    if (r < rows - 1 && !vis[c][r + 1]) nb.push([c, r + 1]);
+    if (!nb.length) { stack.pop(); continue; }
+    const [nc, nr] = nb[Math.floor(R() * nb.length)];
+    if (nc < c) right[nc][nr] = false; if (nc > c) right[c][r] = false;
+    if (nr < r) bottom[nc][nr] = false; if (nr > r) bottom[c][r] = false;
+    vis[nc][nr] = true; stack.push([nc, nr]);
+  }
+  const M = { cols, rows, right, bottom };
+  M.open = (c, r) => {
+    const o = [];
+    if (c > 0 && !right[c - 1][r]) o.push([c - 1, r]);
+    if (c < cols - 1 && !right[c][r]) o.push([c + 1, r]);
+    if (r > 0 && !bottom[c][r - 1]) o.push([c, r - 1]);
+    if (r < rows - 1 && !bottom[c][r]) o.push([c, r + 1]);
+    return o;
+  };
+  M.ekey = (a, b) => { const i = a[0] + a[1] * cols, j = b[0] + b[1] * cols; return Math.min(i, j) + '-' + Math.max(i, j); };
+  M.bfs = (s, blocked = new Set()) => {
+    const dist = new Map(), par = new Map(); const k = (c, r) => c + r * cols;
+    dist.set(k(s[0], s[1]), 0); const q = [s];
+    while (q.length) { const cur = q.shift(); for (const n of M.open(cur[0], cur[1])) { if (blocked.has(M.ekey(cur, n))) continue; const kk = k(n[0], n[1]); if (dist.has(kk)) continue; dist.set(kk, dist.get(k(cur[0], cur[1])) + 1); par.set(kk, cur); q.push(n); } }
+    return { dist, par };
+  };
+  return M;
+}
+const MZ = { cols: 12, rows: 9, cell: 480, th: 50, hall: 1500 };
 LEVELS.push({
-  id: 'corridors', name: 'Коридоры НИИ', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'natasha', music: 'lab', bg: 'office',
-  desc: 'Лабиринт кабинетов. Ищи ключ-карты, обходи лазеры, повтори код Кирилла.',
-  unit: 1e-2, world: { w: 6000, h: 4400 }, start: { x: 900, y: 3500, r: 10 }, goal: { r: 165 },
+  id: 'corridors', name: 'Лабиринт НИИ', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'natasha', music: 'lab', bg: 'office',
+  mech: { icon: '🌀', name: 'ЛАБИРИНТ', text: 'Настоящий лабиринт: туман на карте, ключ-карты в тупиках, двери на пути к выходу.' },
+  desc: 'Кирилл спрятал ключ-карты в тупиках огромного лабиринта. Найди выход в зал и код от заначки!',
+  unit: 1e-2, world: { w: MZ.cols * MZ.cell + MZ.hall, h: MZ.rows * MZ.cell }, start: { x: MZ.cell / 2, y: (MZ.rows - 0.5) * MZ.cell, r: 10 }, goal: { r: 165 },
   growK: 0.12, medals: [420, 660], seed: 303, mmColor: 'rgba(90,100,130,0.9)', burp: 'Заначка Кирилла — объедение!',
   objectives: [{ type: 'size' }, { type: 'flag', flag: 'simonDone', text: 'Открой заначку Кирилла (код)' }],
   milestones: [
     { r: 40, who: 'natasha', text: 'Кирюша, не подходи к нему! Он уже размером с кота!', expr: 'shock' },
-    { r: 90, text: 'Ты стал таким большим, что можешь есть СТЕНЫ (подсвечены зелёным)!' },
-    { r: 140, who: 'egor', text: 'Он ест здание изнутри! Все на выход!', expr: 'shock' },
+    { r: 95, text: 'Ты стал таким большим, что можешь есть СТЕНЫ лабиринта (подсвечены зелёным)!' },
+    { r: 130, who: 'egor', text: 'Он ест лабиринт изнутри! Все на выход!', expr: 'shock' },
   ],
   respawn: [['crumb', 3, 9], ['coin', 5, 12], ['wrapper', 5, 14], ['stickynote', 6, 16], ['phone', 10, 20], ['banana', 10, 20], ['papers', 12, 26], ['cup', 12, 26], ['cardbox', 20, 40]],
   build(b) {
-    const T = 60, ED = 92;
-    const st = { style: 'office', ed: ED };
-    // перегородки: горизонтальный коридор y 2000–2400, вертикальные x 1800–2100 и 3800–4100
-    // комната A (кладовка, старт) x0–1800 y2400–4400: выход наверх
-    b.wall(0, 2400, 600, T, st); b.wall(1000, 2400, 800, T, st);
-    b.wall(1800 - T, 2400, T, 2000, st);
-    // комната B (кабинет Егора) x0–1800 y0–2000: красная дверь снизу
-    b.wall(0, 2000 - T, 700, T, st); b.wall(1100, 2000 - T, 700, T, st); b.door('dB', 700, 2000 - T, 400, T, 'key:red', { ed: 120 });
-    b.wall(1800 - T, 0, T, 2000, st);
-    // комната C (столовая) x2100–3800 y0–2000: вход только из левого коридора (за лазером)
-    b.wall(2100, 0, T, 700, st); b.wall(2100, 1100, T, 900, st); b.wall(3800 - T, 0, T, 2000, st);
-    b.wall(2100, 2000 - T, 1700, T, st);
-    // комната D (игровая Кирилла) x2100–3800 y2400–4400: открыта сверху
-    b.wall(2100, 2400, T, 2000, st); b.wall(3800 - T, 2400, T, 900, st); b.wall(3800 - T, 3700, T, 700, st);
-    b.wall(2100, 2400, 400, T, st); b.wall(2900, 2400, 900, T, st);
-    // комната E (серверная) x4100–6000 y0–2000: синяя дверь снизу
-    b.wall(4100, 0, T, 2000, st);
-    b.wall(4100, 2000 - T, 600, T, st); b.wall(5100, 2000 - T, 900, T, st); b.door('dE', 4700, 2000 - T, 400, T, 'key:blue', { ed: 120 });
-    // комната F (зал совещаний) x4100–6000 y2400–4400: жёлтая дверь сверху
-    b.wall(4100, 2400, T, 2000, st);
-    b.wall(4100, 2400, 600, T, st); b.wall(5100, 2400, 900, T, st); b.door('dF', 4700, 2400, 400, T, 'key:yellow', { ed: 120 });
-    // заначка внутри F
-    b.box(5300, 3600, 700, 800, T, { style: 'metal', ed: 140 }, {});
-    b.door('vault', 5300, 3800, T, 400, 'flag:simonDone', { ed: 150, col: '#be4bdb', msg: 'Заначка Кирилла открыта!' });
-    // лазеры в вертикальных коридорах (их переключает Кирилл)
-    b.laser('k1', 1800, 1500, 2100, 1500, { on: true, group: 'kc' });
-    b.laser('k2', 1800, 3300, 2100, 3300, { on: false, group: 'kc' });
-    b.laser('k3', 3800, 1500, 4100, 1500, { on: false, group: 'kc' });
-    b.laser('k4', 3800, 2900, 4100, 2900, { on: true, group: 'kc' });
-    b.button('bk1', 1950, 1800, 34, 'toggle:k1', { col: '#ff6b6b' });
-    b.button('bk2', 1950, 3000, 34, 'toggle:k2', { col: '#ff6b6b' });
-    b.button('bk3', 3950, 1800, 34, 'toggle:k3', { col: '#ff6b6b' });
-    b.button('bk4', 3950, 2600, 34, 'toggle:k4', { col: '#ff6b6b' });
-    b.sign(1950, 2150, 140, 'Красная кнопка переключает лазер в коридоре. Вход в столовую — выше по коридору!');
-    // красный ключ в клетке из лазеров (столовая)
-    b.laser('c1', 3150, 650, 3740, 650, { on: true });
-    b.laser('c2', 3150, 60, 3150, 650, { on: true });
-    b.button('bc', 2350, 1700, 40, 'toggle:c1,c2', { col: '#4dabf7' });
-    b.key('red', 3500, 330, 28);
-    b.sign(2350, 1550, 120, 'Синяя кнопка выключает лазерную клетку с ключом!');
-    // серверная: вращающийся лазер, жёлтый ключ
-    b.laser('rot', 5050, 1000, 5750, 1000, { rotate: { cx: 5050, cy: 1000, len: 700, spd: 0.9 }, a: 0, noEmit: false, w: 6 });
-    b.key('yellow', 5800, 250, 30);
-    // кабинет Егора: синий ключ
-    b.key('blue', 300, 300, 28);
-    // «Саймон» в зале совещаний
-    const sim = b.trig('simon', 4800, 2750, 110, { act: 'flag:simonDone', seq: [0, 3, 1, 2, 3], pads: [
-      { x: 4450, y: 3150, r: 95, col: '#ff4d4d' }, { x: 5150, y: 3150, r: 95, col: '#4d7cff' }, { x: 4450, y: 3800, r: 95, col: '#3ddc84' }, { x: 5150, y: 3800, r: 95, col: '#ffd23f' }] });
-    sim.onStart = L => { const k = L.byId.kirill; L.radio('kirill', 'О! Это мой код от заначки! Красный, зелёный, синий… ой, я тебе подскажу! Смотри на плиты!', 'crazy'); if (k && !k.dead) k.say = { text: 'Смотри-смотри!', t: 2 }; };
-    sim.onFail = L => { L.radio('kirill', 'Не-не-не! Ещё раз! Я сам иногда путаю.', 'crazy'); };
-    sim.onDone = L => { L.radio('natasha', 'Кирюша, ты рассказал ему код?! Ох…', 'facepalm'); };
-    b.clear(4200, 2500, 1800, 1100); b.clear(4200, 2500, 1100, 1900);
-    // ----- предметы -----
-    const A = { x: 60, y: 2470, w: 1680, h: 1870 };
-    const nur = { cx: 900, cy: 3500, r0: 40, r1: 650 };
-    b.scatter('crumb', 160, 3, 8, nur); b.scatter('coin', 40, 4, 8.5, nur); b.scatter('wrapper', 40, 4, 9, nur); b.scatter('stickynote', 20, 6, 12, { cx: 900, cy: 3500, r0: 200, r1: 900 });
-    b.scatter('crumb', 120, 3, 8, A); b.scatter('coin', 40, 5, 10, A); b.scatter('wrapper', 40, 5, 12, A);
-    b.scatter('stickynote', 30, 6, 14, A); b.scatter('phone', 8, 10, 16, A); b.scatter('banana', 10, 10, 18, A);
-    b.scatter('papers', 10, 12, 20, A); b.scatter('cardbox', 8, 20, 35, A); b.pw('speed', 1500, 4200, 14);
-    const corr = [{ x: 60, y: 2020, w: 5880, h: 360 }, { x: 1830, y: 60, w: 240, h: 4280 }, { x: 3830, y: 60, w: 240, h: 4280 }];
-    for (const c of corr) { b.scatter('crumb', 40, 4, 10, c); b.scatter('coin', 15, 6, 12, c); b.scatter('wrapper', 15, 6, 14, c); b.scatter('cup', 8, 12, 22, c); b.scatter('papers', 6, 14, 24, c); }
-    const Bv = { x: 60, y: 60, w: 1680, h: 1860 };
-    b.item('desk', 900, 600, 80); b.item('computer', 900, 520, 34); b.item('chair', 900, 800, 45);
-    b.scatter('papers', 15, 18, 30, Bv); b.scatter('plant', 4, 30, 50, Bv, { big: true }); b.scatter('cup', 10, 15, 25, Bv);
-    b.scatter('book', 10, 20, 35, Bv); b.scatter('clock', 3, 25, 40, Bv); b.scatter('cardbox', 6, 30, 50, Bv, { big: true }); b.scatter('phone', 6, 14, 22, Bv);
-    const Cv = { x: 2170, y: 60, w: 1560, h: 1860 };
-    b.item('vending', 2300, 300, 70); b.item('vending', 2500, 300, 70, {}); b.item('cooler', 2750, 280, 50);
-    b.scatter('cup', 25, 10, 24, Cv); b.scatter('banana', 15, 12, 22, Cv); b.scatter('wrapper', 25, 8, 16, Cv); b.scatter('donut', 10, 18, 30, Cv);
-    b.scatter('sandwich', 8, 20, 32, Cv); b.scatter('chair', 6, 30, 45, Cv, { big: true }); b.scatter('trashbin', 4, 30, 40, Cv, { big: true });
-    const Dv = { x: 2170, y: 2470, w: 1560, h: 1870 };
-    b.item('sofa', 2950, 4100, 90); b.scatter('duck', 15, 10, 22, Dv); b.scatter('wrapper', 30, 8, 16, Dv); b.scatter('donut', 10, 16, 28, Dv);
-    b.scatter('banana', 10, 12, 22, Dv); b.scatter('plant', 4, 30, 45, Dv, { big: true }); b.scatter('cardbox', 6, 25, 45, Dv, { big: true });
-    b.pw('magnet', 2300, 4250, 22);
-    const Ev = { x: 4170, y: 60, w: 1770, h: 1860 };
-    b.scatter('computer', 10, 35, 50, Ev, { big: true, avoid: (x, y) => U.dist(x, y, 5050, 1000) < 120 }); b.scatter('printer', 6, 40, 55, Ev, { big: true }); b.scatter('chip', 20, 12, 24, Ev);
-    b.scatter('phone', 15, 14, 24, Ev); b.scatter('papers', 15, 20, 32, Ev); b.scatter('extinguisher', 4, 30, 40, Ev); b.scatter('cardbox', 6, 35, 55, Ev, { big: true });
-    const Fv = { x: 4170, y: 2470, w: 1100, h: 1870 };
-    b.scatter('desk', 4, 70, 100, Fv, { big: true, spaced: 1.1 }); b.scatter('chair', 10, 40, 60, Fv); b.scatter('plant', 4, 50, 75, Fv); b.scatter('sofa', 2, 90, 115, Fv, { big: true });
-    b.scatter('cooler', 3, 50, 65, Fv); b.scatter('papers', 10, 30, 45, Fv); b.scatter('vending', 2, 85, 105, Fv, { big: true });
-    // крупная мебель в коридорах — еда для финала уровня
-    for (const c of corr) b.clear(c.x - 30, c.y - 30, c.w + 60, c.h + 60);
-    b.scatter('sofa', 1, 90, 110, Bv, { big: true }); b.scatter('vending', 1, 80, 95, Bv, { big: true }); b.scatter('plant', 3, 50, 70, Bv, { big: true });
-    b.scatter('desk', 2, 80, 100, Cv, { big: true, spaced: 1.1 }); b.scatter('cooler', 2, 50, 60, Cv, { big: true });
-    b.scatter('desk', 3, 80, 110, Dv, { big: true, spaced: 1.1 }); b.scatter('vending', 2, 80, 100, Ev, { big: true }); b.scatter('cooler', 2, 50, 65, Ev, { big: true });
-    const Vv = { x: 5370, y: 3670, w: 560, h: 660 };
-    b.scatter('pizza', 6, 80, 120, Vv); b.scatter('donut', 8, 60, 100, Vv); b.scatter('sandwich', 6, 70, 100, Vv); b.pw('grow', 5650, 4000, 70);
-    // Кирилл и Наташа
-    b.item('sci', 2900, 3200, 60, { id: 'kirill', who: 'kirill', draw: Draws.sci, beh: 'kirill', spd: 1.5, rotMode: 'none', always: true,
-      lines: ['Пёсик! Иди сюда, пёсик!', 'Красная кнопка самая вкусная!', 'Наташа, смотри — Никита!', 'Я пилот! Вжжжж!', 'Хочу нажать на кнопку!', 'А лазеры щекотные?'] });
-    b.item('sci', 3000, 3300, 64, { id: 'natasha', who: 'natasha', draw: Draws.sci, beh: 'natasha', spd: 1.7, rotMode: 'none', always: true,
-      lines: ['Кирюша, не трогай!', 'Кирилл, положи пульт!', 'Ну почему я не пошла в бухгалтеры…', 'Кирюша, это не пёсик!', 'Где моя валерьянка?'] });
+    const { cols, rows, cell: CE, th: TH } = MZ;
+    const L = b.L, R = b.r;
+    const M = genMaze(cols, rows, 3031, 0, rows - 1);
+    L.data.maze = M;
+    const S = [0, rows - 1];
+    const all = M.bfs(S);
+    const K = (c, r) => c + r * cols;
+    let exit = null, best = -1;
+    for (let r = 0; r < rows; r++) { const d = all.dist.get(K(cols - 1, r)); if (d > best) { best = d; exit = [cols - 1, r]; } }
+    const path = [exit]; let cur = exit;
+    while (cur[0] !== S[0] || cur[1] !== S[1]) { cur = all.par.get(K(cur[0], cur[1])); path.unshift(cur); }
+    const cx = c => c * CE + CE / 2, cy = r => r * CE + CE / 2;
+    const st = { style: 'office', ed: 95 };
+    // стены лабиринта
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      if (c < cols - 1 && M.right[c][r]) b.wall((c + 1) * CE - TH / 2, Math.max(0, r * CE - TH / 2), TH, CE + TH - (r === 0 ? TH / 2 : 0) - (r === rows - 1 ? TH / 2 : 0), st);
+      if (r < rows - 1 && M.bottom[c][r]) b.wall(Math.max(0, c * CE - TH / 2), (r + 1) * CE - TH / 2, CE + TH - (c === 0 ? TH / 2 : 0), TH, st);
+    }
+    // восточная граница с жёлтой дверью в зал
+    for (let r = 0; r < rows; r++) {
+      if (r === exit[1]) b.door('dY', cols * CE - TH / 2, r * CE + TH / 2, TH, CE - TH, 'key:yellow', { ed: 125 });
+      b.wall(cols * CE - TH / 2, r * CE - TH / 2, TH, r === exit[1] ? TH : CE + TH, st);
+    }
+    // двери на главном пути
+    const doorAt = (i, id, need) => {
+      const a = path[i], c2 = path[i + 1];
+      if (a[1] === c2[1]) b.door(id, Math.max(a[0], c2[0]) * CE - TH / 2, a[1] * CE + TH / 2, TH, CE - TH, need, { ed: 125 });
+      else b.door(id, a[0] * CE + TH / 2, Math.max(a[1], c2[1]) * CE - TH / 2, CE - TH, TH, need, { ed: 125 });
+      return M.ekey(a, c2);
+    };
+    const onPath = new Set(path.map(p => K(p[0], p[1])));
+    const sideDeadEnd = (cells) => cells.some(k => !onPath.has(k) && M.open(k % cols, Math.floor(k / cols)).length === 1 && all.dist.get(k) >= 5);
+    // двери ставим так, чтобы перед каждой был боковой тупик для ключа
+    let i1 = Math.floor(path.length * 0.25), R0;
+    for (; i1 < path.length * 0.5; i1++) { R0 = M.bfs(S, new Set([M.ekey(path[i1], path[i1 + 1])])).dist; if (sideDeadEnd([...R0.keys()])) break; }
+    let i2 = Math.max(i1 + 4, Math.floor(path.length * 0.58)), R1;
+    for (; i2 < path.length * 0.85; i2++) { R1 = M.bfs(S, new Set([M.ekey(path[i2], path[i2 + 1])])).dist; if (sideDeadEnd([...R1.keys()].filter(k => !R0.has(k)))) break; }
+    const e1 = doorAt(i1, 'dR', 'key:red');
+    const e2 = doorAt(i2, 'dB', 'key:blue');
+    R0 = M.bfs(S, new Set([e1])).dist; R1 = M.bfs(S, new Set([e2])).dist;
+    const pick = (cands) => {
+      let bestC = null, bs = -Infinity;
+      for (const k of cands) { const c = k % cols, r = Math.floor(k / cols); const de = M.open(c, r).length === 1; const s = all.dist.get(k) + (de ? 100 : 0) + (onPath.has(k) ? -50 : 0); if (s > bs) { bs = s; bestC = [c, r]; } }
+      return bestC;
+    };
+    const kR = pick([...R0.keys()].filter(k => k !== K(S[0], S[1])));
+    const kB = pick([...R1.keys()].filter(k => !R0.has(k)));
+    const kY = pick([...all.dist.keys()].filter(k => !R1.has(k)));
+    b.key('red', cx(kR[0]), cy(kR[1]), 26); b.key('blue', cx(kB[0]), cy(kB[1]), 28); b.key('yellow', cx(kY[0]), cy(kY[1]), 30);
+    L.data.keysAt = { red: kR, blue: kB, yellow: kY }; L.data.exit = exit; L.data.path = path;
+    // лазеры поперёк проходов (Кирилл их щёлкает)
+    const edges = [];
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) for (const n of M.open(c, r)) if (n[0] > c || n[1] > r) edges.push([[c, r], n]);
+    let placed = 0;
+    for (let tries = 0; tries < 200 && placed < 7; tries++) {
+      const [a, c2] = edges[Math.floor(R() * edges.length)];
+      const ek = M.ekey(a, c2);
+      if (ek === e1 || ek === e2 || K(a[0], a[1]) === K(S[0], S[1])) continue;
+      const id = 'k' + placed;
+      const near = all.dist.get(K(a[0], a[1])) < all.dist.get(K(c2[0], c2[1])) ? a : c2;
+      if (a[1] === c2[1]) { const x = Math.max(a[0], c2[0]) * CE; b.laser(id, x, a[1] * CE + TH / 2, x, (a[1] + 1) * CE - TH / 2, { on: R() < 0.5, group: 'kc' }); b.button('b' + id, cx(near[0]) + (near[0] < Math.max(a[0], c2[0]) ? 90 : -90), cy(near[1]) + 120, 32, 'toggle:' + id, { col: '#ff6b6b' }); }
+      else { const y = Math.max(a[1], c2[1]) * CE; b.laser(id, a[0] * CE + TH / 2, y, (a[0] + 1) * CE - TH / 2, y, { on: R() < 0.5, group: 'kc' }); b.button('b' + id, cx(near[0]) + 120, cy(near[1]) + (near[1] < Math.max(a[1], c2[1]) ? 90 : -90), 32, 'toggle:' + id, { col: '#ff6b6b' }); }
+      placed++;
+    }
+    // предметы по клеткам: чем дальше от входа — тем крупнее
+    const maxD = Math.max(...all.dist.values());
+    const tiers = [
+      [['crumb', 'coin', 'wrapper'], 3, 8.5, 9],
+      [['stickynote', 'cup', 'phone', 'banana', 'coin', 'wrapper'], 7, 18, 7],
+      [['papers', 'cardbox', 'book', 'donut', 'cup', 'phone'], 14, 32, 6],
+      [['chair', 'plant', 'cardbox', 'sandwich', 'papers', 'extinguisher'], 22, 50, 5],
+    ];
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      const k = K(c, r), dn = all.dist.get(k) / maxD;
+      const T = tiers[Math.min(3, Math.floor(dn * 4))];
+      const area = { x: c * CE + TH, y: r * CE + TH, w: CE - TH * 2, h: CE - TH * 2 };
+      for (let i = 0; i < T[3] + (dn < 0.12 ? 10 : 0); i++) b.scatter(R.pick(T[0]), 1, T[1], T[2], area);
+      if (dn > 0.2) b.scatter('crumb', 3, 3, 7, area);
+      if (M.open(c, r).length === 1 && k !== K(S[0], S[1])) {
+        b.scatter(R.pick(T[0]), 1, T[2], T[2] * 1.4, area);
+        if (R() < 0.3) b.pw(R.pick(['speed', 'magnet', 'shield', 'grow']), cx(c) + 60, cy(r) - 60, 14 + dn * 30);
+      }
+    }
+    // Кирилл и Наташа бродят по лабиринту
+    const mid = path[Math.floor(path.length * 0.45)];
+    b.item('sci', cx(mid[0]), cy(mid[1]), 60, { id: 'kirill', who: 'kirill', draw: Draws.sci, beh: 'kirill', spd: 1.4, rotMode: 'none', always: true,
+      lines: ['Пёсик! Иди сюда, пёсик!', 'Я спрятал карты в тупиках! Хи-хи!', 'Наташа, смотри — Никита!', 'Направо! Нет, налево!', 'Хочу нажать на кнопку!', 'А лазеры щекотные?'] });
+    b.item('sci', cx(mid[0]) + 80, cy(mid[1]) + 60, 64, { id: 'natasha', who: 'natasha', draw: Draws.sci, beh: 'natasha', spd: 1.7, rotMode: 'none', always: true,
+      lines: ['Кирюша, не трогай!', 'Кирилл, мы заблудились!', 'Ну почему я не пошла в бухгалтеры…', 'Кирюша, это не пёсик!', 'Где моя валерьянка?'] });
+    // ЗАЛ: «Саймон» и заначка
+    const HX = cols * CE, HW = MZ.hall, H = rows * CE;
+    b.floor({ k: 'rect', x: HX, y: 0, w: HW, h: H, c: 'rgba(255,230,150,0.12)', mm: 'rgba(130,140,170,0.9)' });
+    const sim = b.trig('simon', HX + 750, 800, 110, { act: 'flag:simonDone', seq: [0, 3, 1, 2, 3], pads: [
+      { x: HX + 400, y: 1250, r: 95, col: '#ff4d4d' }, { x: HX + 1100, y: 1250, r: 95, col: '#4d7cff' }, { x: HX + 400, y: 1850, r: 95, col: '#3ddc84' }, { x: HX + 1100, y: 1850, r: 95, col: '#ffd23f' }] });
+    sim.onStart = L2 => { L2.radio('kirill', 'О! Это мой код от заначки! Смотри на плиты — я подскажу!', 'crazy'); };
+    sim.onFail = L2 => { L2.radio('kirill', 'Не-не-не! Ещё раз! Я сам иногда путаю.', 'crazy'); };
+    sim.onDone = L2 => { L2.radio('natasha', 'Кирюша, ты рассказал ему код?! Ох…', 'facepalm'); };
+    b.clear(HX, 500, HW, 1650);
+    b.box(HX + 350, 2950, 1000, 1300, 60, { style: 'metal', ed: 150 }, { n: [[350, 300]] });
+    b.door('vault', HX + 700, 2950, 300, 60, 'flag:simonDone', { ed: 160, col: '#be4bdb', msg: 'Заначка Кирилла открыта!' });
+    b.clear(HX + 300, 2900, 1100, 1400);
+    const V = { x: HX + 420, y: 3020, w: 860, h: 1160 };
+    b.scatter('pizza', 7, 80, 120, V); b.scatter('donut', 8, 60, 100, V); b.scatter('sandwich', 6, 70, 100, V); b.pw('grow', HX + 850, 3600, 70);
+    const HALLR = { x: HX + 60, y: 60, w: HW - 120, h: H - 120 };
+    b.scatter('desk', 4, 80, 105, HALLR, { big: true, spaced: 1.1 }); b.scatter('sofa', 3, 90, 115, HALLR, { big: true, spaced: 1.1 });
+    b.scatter('vending', 3, 80, 100, HALLR, { big: true, spaced: 1.1 }); b.scatter('cooler', 3, 50, 65, HALLR, { big: true }); b.scatter('plant', 5, 50, 75, HALLR, { big: true });
+    b.scatter('chair', 10, 40, 60, HALLR); b.scatter('papers', 12, 30, 45, HALLR); b.scatter('cardbox', 8, 35, 55, HALLR);
   },
   events: {
     kirillPress(L, k) {
       const ls = L.lasers.filter(l => l.group === 'kc');
+      if (!ls.length) return;
       const l = U.pick(ls); l.on = !l.on;
       k.say = { text: U.pick(['Пип!', 'Нажал!', 'Кнопочка!', 'Ой, а что я выключил?']), t: 1.6 };
       Sound.play('button');
-      if (!L.data.kp) { L.data.kp = 1; L.radio('natasha', 'Кирюша опять жмёт на кнопки! Лазеры в коридорах включаются сами по себе!', 'tired'); }
+      if (!L.data.kp) { L.data.kp = 1; L.radio('natasha', 'Кирюша опять жмёт на кнопки! Лазеры в лабиринте включаются сами по себе!', 'tired'); }
     },
   },
   init(L) {
-    L.radio('natasha', 'Кирюша, стой! Ой… Никита сбежал из лаборатории! Все кабинеты заперты на ключ-карты.', 'shock');
-    L.toast('Ищи ключ-карты: красная → синяя → жёлтая', '#ffe066', 5);
+    L.data.seen = new Uint8Array(MZ.cols * MZ.rows);
+    L.radio('natasha', 'Кирюша, стой! Ой… Никита в лабиринте! Кирилл спрятал ключ-карты по тупикам. Карта открывается, только где ты уже был.', 'shock');
+    L.toast('ЛАБИРИНТ: ищи ключ-карты в тупиках — красная → синяя → жёлтая', '#ffe066', 5);
+  },
+  update(L, dt) {
+    const P = L.P, CE = MZ.cell, s = L.data.seen;
+    const R = Math.max(CE * 0.8, Math.min(L.viewW || 1000, L.viewH || 1000) * 0.5);
+    const c0 = Math.max(0, Math.floor((P.x - R) / CE)), c1 = Math.min(MZ.cols - 1, Math.floor((P.x + R) / CE));
+    const r0 = Math.max(0, Math.floor((P.y - R) / CE)), r1 = Math.min(MZ.rows - 1, Math.floor((P.y + R) / CE));
+    for (let c = c0; c <= c1; c++) for (let r = r0; r <= r1; r++) s[c + r * MZ.cols] = 1;
+  },
+  mmOverlay(L, ctx, mx, my, k) {
+    const CE = MZ.cell, s = L.data.seen;
+    ctx.fillStyle = 'rgba(12,10,28,0.96)';
+    for (let c = 0; c < MZ.cols; c++) for (let r = 0; r < MZ.rows; r++) if (!s[c + r * MZ.cols]) ctx.fillRect(mx + c * CE * k - 0.5, my + r * CE * k - 0.5, CE * k + 1, CE * k + 1);
+    if (!L.data.hallSeen && L.P.x > MZ.cols * CE) L.data.hallSeen = 1;
+    if (!L.data.hallSeen) ctx.fillRect(mx + MZ.cols * CE * k, my, MZ.hall * k + 1, MZ.rows * CE * k + 1);
   },
 });
 
 // ============================================================
-//  1-4. МАСТЕРСКАЯ ДАНИ (конвейеры, ящики, босс Пылесос-9000)
+//  1-4. МАСТЕРСКАЯ ДАНИ — ПАРКУР над шахтой цеха + босс Пылесос-9000
 // ============================================================
 LEVELS.push({
-  id: 'workshop', name: 'Мастерская Дани', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'danya', music: 'lab', bg: 'workshop',
-  desc: 'Конвейеры, ящики на кнопки и БОСС: Пылесос-9000!',
-  unit: 2e-2, world: { w: 6400, h: 4800 }, start: { x: 500, y: 500, r: 10 }, goal: { r: 150 },
-  growK: 0.12, medals: [300, 480], seed: 404, mmColor: 'rgba(120,125,135,0.9)', burp: 'Пылесос на вкус как батарейки!',
-  objectives: [{ type: 'flag', flag: 'plates', text: 'Поставь ящики на 3 кнопки' }, { type: 'flag', flag: 'arenaOpen', text: 'Поверни рубильник цеха' }, { type: 'flag', flag: 'vacuumDead', text: 'Победи Пылесос-9000' }],
+  id: 'workshop', name: 'Мастерская Дани', chapter: 'Глава 1 · НИИ «Мозгоправ»', host: 'danya', music: 'lab', bg: 'pit',
+  mech: { icon: '🦘', name: 'ПАРКУР', text: 'Пол — это пропасть! Прыгай по балкам, лифтам и рассыпающимся решёткам.' },
+  desc: 'Цех над бездонной шахтой. Прыгай (ПРОБЕЛ) по балкам, лифтам, решёткам и батутам. В конце — Пылесос-9000!',
+  unit: 2e-2, world: { w: 8600, h: 4200 }, start: { x: 800, y: 2150, r: 10 }, goal: { r: 100 }, pit: true, camFrac: 0.036,
+  growK: 0.13, medals: [200, 330], seed: 404, mmColor: 'rgba(10,12,18,0.95)', burp: 'Пылесос на вкус как батарейки!',
+  objectives: [{ type: 'flag', flag: 'arena', text: 'Допрыгай до арены Пылесоса' }, { type: 'flag', flag: 'vacuumDead', text: 'Победи Пылесос-9000' }],
   milestones: [
-    { r: 30, who: 'danya', text: 'Эй! Это мои болты! Я их по размеру сортировал!', expr: 'angry' },
-    { r: 70, who: 'danya', text: 'Ничего-ничего. В конце цеха тебя ждёт мой лучший робот…', expr: 'smug' },
+    { r: 22, who: 'danya', text: 'Эй, это мои болты! И не прыгай так — внизу шахта на сорок этажей!', expr: 'angry' },
+    { r: 45, who: 'danya', text: 'Ржавые решётки я так и не починил… Ну, тем хуже для тебя!', expr: 'smug' },
   ],
-  respawn: [['bolt', 3, 10], ['nut', 3, 10], ['screw', 4, 10], ['spring', 6, 16], ['chip', 8, 20], ['battery', 10, 24], ['gear', 10, 30], ['wrench', 15, 35], ['screwdriver', 15, 32], ['drill', 25, 45], ['toolbox', 35, 60]],
+  respawn: [['bolt', 3, 10], ['nut', 3, 10], ['screw', 4, 10], ['spring', 6, 16], ['chip', 8, 20], ['battery', 10, 24], ['gear', 10, 28]],
   build(b) {
-    const T = 60;
-    const st = { style: 'metal', ed: 125 };
-    // A | B перегородка x=2200 (y0–2400), проход 1000–1400
-    b.wall(2200, 0, T, 1000, st); b.wall(2200, 1400, T, 1000, st);
-    // A,B | C — y=2400, дверь B1 по кнопкам
-    b.wall(0, 2400, 3150, T, st); b.door('B1', 3150, 2400, 300, T, 'plates', { ed: 140, col: '#ffd43b', msg: 'Ворота склада открыты!' }); b.wall(3450, 2400, 1010, T, st);
-    // стена x=4400 с дверью арены (рубильник)
-    b.wall(4400, 0, T, 3600, st); b.door('arenaDoor', 4400, 3600, T, 400, 'flag:arenaOpen', { ed: 140, col: '#ff6b6b', msg: 'Проход к арене открыт!' }); b.wall(4400, 4000, T, 800, st);
-    // треснувшие стены-шорткаты (рывком)
-    b.wall(900, 1450, 600, 40, { style: 'metal' }); b.wall(900, 1650, 600, 40, { style: 'metal' });
-    b.wall(900, 1490, 40, 160, { style: 'metal', dash: true }); b.wall(1460, 1490, 40, 160, { style: 'metal', dash: true });
-    b.pw('grow', 1200, 1570, 22); b.item('chip', 1080, 1570, 14); b.item('chip', 1320, 1570, 14);
-    b.sign(800, 1570, 120, 'За треснувшей стеной что-то есть… Рывок!');
-    // конвейеры в зоне A
-    b.zone('conveyor', { x: 300, y: 900, w: 1600, h: 140 }, { dx: 1, dy: 0, str: 0.45 });
-    b.zone('conveyor', { x: 1900, y: 900, w: 140, h: 1200 }, { dx: 0, dy: 1, str: 0.45 });
-    b.zone('conveyor', { x: 300, y: 2100, w: 1740, h: 140 }, { dx: -1, dy: 0, str: 0.45 });
-    b.zone('conveyor', { x: 300, y: 1040, w: 140, h: 1060 }, { dx: 0, dy: -1, str: 0.45 });
-    b.zone('conveyor', { x: 700, y: 1250, w: 1000, h: 120 }, { dx: 1, dy: 0, str: 0.7 });
-    b.zone('conveyor', { x: 700, y: 1780, w: 1000, h: 120 }, { dx: -1, dy: 0, str: 0.7 });
-    b.floor({ k: 'stripes', x: 2200, y: 950, w: 60, h: 500, s: 30 });
-    // склад B: 3 ящика и 3 кнопки
-    b.plate('p1', 2650, 2150, 70, 'B1'); b.plate('p2', 3300, 2150, 70, 'B1'); b.plate('p3', 3950, 2150, 70, 'B1');
-    b.item('crate', 2700, 1300, 62, { mov: true, heavy: 0.2, ed: 135, rotMode: 'none', mm: '#c68b4b' });
-    b.item('crate', 3300, 900, 62, { mov: true, heavy: 0.2, ed: 135, rotMode: 'none', mm: '#c68b4b' });
-    b.item('crate', 3900, 1400, 62, { mov: true, heavy: 0.2, ed: 135, rotMode: 'none', mm: '#c68b4b' });
-    b.sign(2600, 1150, 200, 'Толкай тяжёлые ящики на жёлтые кнопки в полу!');
-    b.clear(2300, 60, 2050, 2300);
-    // цех C: роборуки-сварщики, масло, рубильник
-    for (const [x, y, s] of [[900, 3500, 1], [2100, 3300, -1.2], [3300, 3800, 0.9]]) b.laser('weld' + x, x, y, x + 380, y, { rotate: { cx: x, cy: y, len: 380, spd: s }, a: x, w: 7, col: '#4dabf7' });
-    b.zone('ice', { x: 1300, y: 4200, r: 220 }); b.zone('ice', { x: 2700, y: 2900, r: 200 }); b.zone('ice', { x: 3900, y: 3300, r: 160 });
-    b.hold('valve', 4100, 4500, 60, 'flag:arenaOpen', { need: 2 });
-    b.sign(3900, 4400, 220, 'Рубильник! Постой на нём, пока не провернётся.');
-    // арена D
-    b.box(4700, 1100, 1500, 1700, T, { style: 'metal' }, { s: [[550, 400]] });
-    for (const [x, y] of [[5050, 1500], [5850, 1500], [5050, 2350], [5850, 2350]]) b.item('barrel', x, y, 80, { noEat: true, pillar: true, v: 3, rotMode: 'none' });
-    b.event(5450, 2550, 160, (L) => { L.flag('bossStart'); L.radio('danya', 'Встречай, Никита! ПЫЛЕСОС-9000! Втягивает всё, даже твои шансы!', 'smug'); Sound.playMusic('boss'); });
-    b.item('vacuum', 5450, 1700, 150, { id: 'vac', boss: true, bossName: 'ПЫЛЕСОС-9000', hp: 3, maxHp: 3, draw: Draws.vacuum, beh: 'boss_vacuum', noEat: true, always: true, onDashHit: vacuumHit, heading: Math.PI / 2, mm: '#ff4d4d' });
-    b.item('sci', 6300, 950, 70, { who: 'danya', draw: Draws.sci, noEat: true, solid: false, rotMode: 'none', pose: 'hold', expr: 'smug', accName: 'remote' });
-    b.clear(4700, 1100, 1500, 1700);
-    // ----- предметы -----
-    const A = { x: 60, y: 60, w: 2100, h: 2300 };
-    const nur = { cx: 500, cy: 500, r0: 40, r1: 650 };
-    b.scatter('bolt', 90, 3, 8, nur); b.scatter('nut', 80, 3, 8, nur); b.scatter('screw', 50, 4, 8.5, nur); b.scatter('spring', 20, 6, 12, { cx: 500, cy: 500, r0: 200, r1: 900 }); b.scatter('chip', 15, 8, 14, { cx: 500, cy: 500, r0: 300, r1: 1000 });
-    b.scatter('bolt', 90, 3, 8, A); b.scatter('nut', 80, 3, 8, A); b.scatter('screw', 50, 4, 9, A); b.scatter('spring', 30, 6, 14, A);
-    b.scatter('chip', 25, 8, 16, A); b.scatter('battery', 20, 10, 18, A); b.scatter('gear', 20, 10, 20, A); b.scatter('minibot', 8, 12, 18, A);
-    b.pw('speed', 1500, 200, 14);
-    const Bz = { x: 2300, y: 60, w: 2050, h: 2300 };
-    b.scatter('wrench', 20, 14, 26, Bz); b.scatter('screwdriver', 16, 14, 26, Bz); b.scatter('battery', 25, 12, 22, Bz); b.scatter('gear', 25, 14, 28, Bz);
-    b.scatter('spring', 20, 10, 18, Bz); b.scatter('chip', 20, 12, 20, Bz); b.scatter('minibot', 10, 16, 26, Bz); b.scatter('nut', 30, 6, 12, Bz);
-    const Cz = { x: 60, y: 2500, w: 4300, h: 2240 };
-    b.scatter('toolbox', 14, 30, 55, Cz, { big: true }); b.scatter('drill', 14, 25, 42, Cz); b.scatter('tire', 12, 30, 50, Cz, { big: true }); b.scatter('barrel', 10, 35, 55, Cz, { big: true });
-    b.scatter('oilcan', 12, 20, 35, Cz); b.scatter('wrench', 20, 20, 35, Cz); b.scatter('gear', 30, 18, 40, Cz); b.scatter('battery', 25, 15, 28, Cz); b.scatter('chip', 20, 15, 25, Cz);
-    b.scatter('minibot', 10, 34, 48, Cz, { opts: { beh: 'chase', hz: 0.07, spd: 1.1, aggro: 7, taunt: ['ОХРАНА!', 'Бип-бип! Нарушитель!'] } });
-    b.pw('shield', 2000, 4500, 26); b.pw('magnet', 3600, 2700, 30);
-    const Dz = { x: 4500, y: 60, w: 1850, h: 4680 };
-    b.scatter('toolbox', 12, 45, 75, Dz, { big: true }); b.scatter('barrel', 10, 45, 75, Dz, { big: true }); b.scatter('tire', 10, 45, 65, Dz, { big: true });
-    b.scatter('drill', 10, 35, 55, Dz); b.scatter('gear', 20, 30, 55, Dz); b.scatter('oilcan', 10, 30, 45, Dz); b.scatter('minibot', 6, 40, 60, Dz);
+    // A — стартовая площадка
+    const A = b.plat(650, 1950, 450, 420, { style: 'floor' });
+    b.checkpoint(720, 2020);
+    b.sign(1000, 2100, 140, 'Вокруг — пропасть! ПРОБЕЛ (или ПКМ) — ПРЫЖОК через щель. Целься мышкой!', { col: '#ffd43b' });
+    b.scatterOn('bolt', 35, 3, 8, A); b.scatterOn('nut', 30, 3, 8, A); b.scatterOn('screw', 25, 4, 8.5, A);
+    b.scatterOn('spring', 15, 6, 10, A); b.scatterOn('chip', 8, 8, 12, A);
+    // B — балки с узкими щелями
+    const B1 = b.plat(1135, 2000, 320, 200), B2 = b.plat(1490, 1880, 280, 200), B3 = b.plat(1805, 2030, 300, 180);
+    for (const p of [B1, B2, B3]) { b.scatterOn('nut', 10, 4, 9, p); b.scatterOn('spring', 4, 7, 11, p); }
+    const B4 = b.plat(2140, 1800, 520, 520, { style: 'floor' });
+    b.checkpoint(2250, 2050);
+    b.scatterOn('spring', 15, 7, 13, B4); b.scatterOn('chip', 15, 8, 15, B4); b.scatterOn('battery', 10, 10, 17, B4); b.scatterOn('gear', 10, 10, 18, B4); b.scatterOn('bolt', 20, 5, 10, B4);
+    b.pw('speed', 2580, 1880, 14);
+    // C — лифты через пропасть
+    b.plat(0, 0, 240, 200, { path: [[2680, 1960], [3240, 1960]], period: 7, style: 'lift' });
+    b.plat(0, 0, 240, 160, { path: [[2680, 2220], [3240, 2220]], period: 7, phase: 3.5, style: 'lift' });
+    b.sign(2560, 2050, 120, 'Лифт! Запрыгивай, когда он подъедет, и спрыгивай на другой стороне.', { col: '#ffd43b' });
+    const C = b.plat(3500, 1650, 750, 850, { style: 'floor' });
+    b.checkpoint(3600, 2050);
+    b.scatterOn('wrench', 14, 12, 24, C); b.scatterOn('battery', 14, 12, 22, C); b.scatterOn('gear', 16, 12, 26, C); b.scatterOn('chip', 15, 10, 18, C);
+    b.scatterOn('screwdriver', 8, 12, 24, C); b.scatterOn('minibot', 6, 14, 22, C); b.scatterOn('spring', 10, 8, 14, C);
+    b.item('geyser', 3900, 1850, 45, { beh: 'geyser', draw: Draws.geyser, noEat: true, solid: false, cyc: 4, phase: 0 });
+    b.item('geyser', 4050, 2300, 45, { beh: 'geyser', draw: Draws.geyser, noEat: true, solid: false, cyc: 4, phase: 2 });
+    // D — рассыпающиеся решётки
+    for (const [x, y] of [[4310, 1950], [4600, 1720], [4890, 1490], [5180, 1260]]) { const g = b.plat(x, y, 230, 230, { kind: 'crumble', life: 1.0 }); b.scatterOn('gear', 2, 12, 22, g); }
+    const D = b.plat(5470, 700, 800, 800, { style: 'floor' });
+    b.checkpoint(5600, 1100);
+    b.scatterOn('toolbox', 10, 22, 40, D); b.scatterOn('drill', 10, 18, 35, D); b.scatterOn('tire', 8, 22, 38, D); b.scatterOn('oilcan', 8, 16, 30, D);
+    b.scatterOn('gear', 15, 15, 32, D); b.scatterOn('battery', 12, 14, 26, D); b.scatterOn('wrench', 10, 16, 30, D);
+    b.pw('shield', 6200, 760, 26);
+    // E — конвейер вниз и остров со сварщиками
+    b.plat(5650, 1560, 300, 900, { kind: 'conveyor', cdx: 1, cdy: 0, str: 0.42 });
+    b.sign(5800, 1540, 120, 'Конвейер сносит в сторону! Держись против течения.', { col: '#ffd43b' });
+    const E = b.plat(5400, 2520, 1100, 900, { style: 'floor' });
+    b.checkpoint(5550, 2700);
+    b.scatterOn('barrel', 10, 28, 50, E); b.scatterOn('toolbox', 10, 30, 52, E); b.scatterOn('tire', 8, 30, 48, E); b.scatterOn('drill', 8, 26, 42, E);
+    b.scatterOn('minibot', 6, 30, 45, E, { opts: { beh: 'chase', hz: 0.07, spd: 1.0, aggro: 7, taunt: ['ОХРАНА!', 'Бип! Нарушитель!'] } });
+    b.laser('weldE', 5800, 3050, 6100, 3050, { rotate: { cx: 5800, cy: 3050, len: 300, spd: 0.7 }, a: 0, w: 7, col: '#4dabf7' });
+    // F — батут к арене (+ запасная ступенька)
+    b.platC(6380, 2800, 70, { kind: 'spring', dir: 0, pow: 720, air: 0.8 });
+    b.plat(6560, 2600, 180, 180);
+    b.sign(6250, 2800, 130, 'Батут! Наступи — и тебя подбросит прямо к арене.', { col: '#ffd43b' });
+    // арена
+    const AR = b.plat(6800, 1300, 1600, 1800, { style: 'floor' });
+    b.checkpoint(6950, 2200);
+    for (const [x, y] of [[7200, 1800], [8000, 1800], [7200, 2600], [8000, 2600]]) b.item('barrel', x, y, 80, { noEat: true, pillar: true, v: 3, rotMode: 'none' });
+    b.L.data.arena = AR;
+    b.item('vacuum', 7600, 2200, 150, { id: 'vac', boss: true, bossName: 'ПЫЛЕСОС-9000', hp: 4, maxHp: 4, draw: Draws.vacuum, beh: 'boss_vacuum', noEat: true, always: true, onDashHit: vacuumHit, heading: Math.PI, mm: '#ff4d4d' });
+    b.plat(8420, 2100, 150, 200);
+    b.item('sci', 8495, 2200, 70, { who: 'danya', draw: Draws.sci, noEat: true, solid: false, rotMode: 'none', pose: 'hold', expr: 'smug', accName: 'remote', fly: true });
+    b.scatterOn('gear', 8, 25, 40, AR, { avoid: (x, y) => U.dist(x, y, 7600, 2200) < 400 });
   },
   init(L) {
-    L.radio('danya', 'Добро пожаловать в мою мастерскую! Тут всё на конвейерах. Даже обед.', 'smug');
+    L.radio('danya', 'Добро пожаловать в мою мастерскую! Аккуратнее — пол я ещё не доделал. Его просто нет.', 'smug');
   },
   update(L, dt) {
-    if (!L.flags.plates && L.triggers.filter(t => t.k === 'plate').every(t => t.active)) { L.flag('plates'); }
+    const P = L.P;
+    if (!L.flags.arena && P.falling <= 0 && P.air <= 0 && P.dashT <= 0 && L.platAt(P.x, P.y, 0) === L.data.arena) {
+      L.flag('arena'); L.flag('bossStart'); Sound.playMusic('boss');
+      L.radio('danya', 'Встречай, Никита! ПЫЛЕСОС-9000! Он гоняется, втягивает и таранит. Но если врежется в колонну или в край — оглохнет!', 'smug');
+    }
     if (L.flags.vacuumDead && !L.data.vd) { L.data.vd = 1; L.toast('ПЫЛЕСОС-9000 ПОВЕРЖЕН!', '#69db7c', 3); }
   },
+  onFall(L) { if (!L.data.fallSaid) { L.data.fallSaid = 1; L.radio('danya', 'Ха! Говорил же — шахта на сорок этажей. Хорошо, что там батут.', 'smug'); } },
 });
 
 // ============================================================
@@ -428,6 +500,7 @@ function cityBlocks() {
 }
 LEVELS.push({
   id: 'city', name: 'Город', chapter: 'Глава 2 · Город', host: 'dima', music: 'city', bg: 'city',
+  mech: { icon: '🚦', name: 'СВЕТОФОРЫ', text: 'Час пик! Машины едут по правилам: переходи дорогу, когда им горит красный.' },
   desc: 'Никита на свободе! Ешь всё — от голубей до небоскрёбов. Дима гоняется на джипе.',
   unit: 5e-2, world: { w: 9200, h: 7600 }, start: { x: 1400, y: 6200, r: 10 }, goal: { r: 340 },
   growK: 0.13, medals: [260, 420], seed: 505, mmColor: 'rgba(90,150,90,0.85)', burp: 'Мэрия была с начинкой!',
@@ -497,16 +570,21 @@ LEVELS.push({
       const x0 = roadsX[i] + (cw ? lane : -lane), x1 = roadsX[i + 1] - (cw ? lane : -lane), y0 = roadsY[j] + (cw ? lane : -lane), y1 = roadsY[j + 1] - (cw ? lane : -lane);
       return cw ? [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] : [[x0, y0], [x0, y1], [x1, y1], [x1, y0]];
     };
+    // светофоры на всех перекрёстках
+    const inters = [];
+    roadsX.forEach((x, i) => roadsY.forEach((y, j) => inters.push({ x, y, off: (i * 2.3 + j * 3.7) % 12, red: 0 })));
+    b.L.data.inters = inters;
+    // пешеходные кнопки: «все машины — стоп»
+    for (const I of inters.filter((_, q) => q % 3 === 1)) b.button('ped' + I.x + '_' + I.y, I.x + 150, I.y + 150, 30, (L) => { I.red = 7; L.toast('Пешеходный переход! Машины стоят 7 секунд', '#69db7c', 2); }, { col: '#69db7c' });
+    // час пик: машины по кольцам вокруг каждого квартала
     let n = 0;
     for (let j = 0; j < 4; j++) for (let i = 0; i < 5; i++) {
-      if ((i + j) % 2 === 1) continue;
-      const path = loop(i, j, n % 2 === 0);
-      const k = n % 4;
-      const [sx, sy] = path[k % 4];
-      const t = n % 5 === 0 ? 'bus' : n % 7 === 3 ? 'truck' : 'car';
-      b.item(t, sx, sy, t === 'bus' ? 105 : t === 'truck' ? 75 : 45, { beh: 'traffic', path, spd: t === 'car' ? 1.7 : 0.9, hz: 0.06, data: { pi: (k + 1) % 4 }, rotMode: 'dir' });
-      const [sx2, sy2] = path[(k + 2) % 4];
-      b.item('car', sx2, sy2, 45, { beh: 'traffic', path, spd: 1.5, hz: 0.06, data: { pi: (k + 3) % 4 }, rotMode: 'dir' });
+      const path = loop(i, j, true);
+      for (let c = 0; c < 3; c++) {
+        const seg = (n + c) % 4, [ax, ay] = path[seg], [bx2, by2] = path[(seg + 1) % 4];
+        const t = (n + c) % 7 === 0 ? 'bus' : (n + c) % 9 === 4 ? 'truck' : 'car';
+        b.item(t, (ax + bx2) / 2, (ay + by2) / 2, t === 'bus' ? 105 : t === 'truck' ? 75 : 45, { beh: 'car', path, spd: t === 'car' ? 1.8 : 1.0, hz: 0.09, data: { pi: (seg + 1) % 4 }, rotMode: 'dir', rot: Math.atan2(by2 - ay, bx2 - ax), always: true });
+      }
       n++;
     }
     // Дима на джипе
@@ -515,10 +593,29 @@ LEVELS.push({
       lines: ['Стоять! Полиция НИИ!', 'Никита, это для твоего же блага!', 'Сетка — лучший друг охотника!', 'Я ловил даже голубей!'], scared: ['Мой джип!', 'Никита, нет!', 'Задний ход!'] });
     b.pw('speed', 1900, 5800, 16); b.pw('shield', 4600, 4600, 40); b.pw('magnet', 3000, 1500, 70); b.pw('grow', 7700, 1400, 140); b.pw('speed', 6200, 6300, 60);
   },
-  init(L) { L.radio('dima', 'Внимание всем постам! Слизень с лицом Никиты в городском парке!', 'determined'); L.tip('cars', 'Машины опасны, пока ты меньше их. Река сносит течением!', '#ffe066'); },
+  init(L) {
+    L.radio('dima', 'Внимание всем постам! Слизень с лицом Никиты в городском парке! Час пик — машин полно.', 'determined');
+    L.toast('ЧАС ПИК: переходи дороги на КРАСНЫЙ для машин! Зелёные кнопки — пешеходный переход', '#ffe066', 5.5);
+  },
   update(L, dt) {
-    const P = L.P;
-    for (const it of L.items) if (it.beh === 'traffic' && !it.dead) it.harmless = L.canEat(it);
+    for (const I of L.data.inters) if (I.red > 0) I.red -= dt;
+  },
+  drawUnder(ctx, L, v, z, t) {
+    for (const I of L.data.inters) {
+      if (I.x < v.x - 300 || I.x > v.x + v.w + 300 || I.y < v.y - 300 || I.y > v.y + v.h + 300) continue;
+      const hs = cityLight(L, I, true), vs = cityLight(L, I, false);
+      // стоп-линии
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillRect(I.x - 122, I.y - 110, 10, 110); ctx.fillRect(I.x + 112, I.y, 10, 110); ctx.fillRect(I.x, I.y - 122, 110, 10); ctx.fillRect(I.x - 110, I.y + 112, 110, 10);
+      const head = (x, y, st) => {
+        rect(ctx, x - 14, y - 34, 28, 68, 6, '#212529', OL, 3);
+        const cols = [['#ff3b3b', '#4a1414'], ['#ffd43b', '#4a3f14'], ['#3ddc84', '#123d24']];
+        const on = st === 'green' ? 2 : st === 'yellow' ? 1 : 0;
+        for (let k = 0; k < 3; k++) { circ(ctx, x, y - 21 + k * 21, 8, k === on ? cols[k][0] : cols[k][1], null); if (k === on) { ctx.save(); ctx.globalAlpha = 0.35; circ(ctx, x, y - 21 + k * 21, 16, cols[k][0], null); ctx.restore(); } }
+      };
+      head(I.x - 140, I.y - 140, hs); head(I.x + 140, I.y + 140, hs);
+      head(I.x + 140, I.y - 140, vs); head(I.x - 140, I.y + 140, vs);
+    }
   },
 });
 
@@ -527,6 +624,7 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'sewer', name: 'Канализация', chapter: 'Глава 2 · Город', host: 'danya', music: 'dark', bg: 'sewer',
+  mech: { icon: '🔦', name: 'СТЕЛС', text: 'Темнота и дроны-прожекторы. Не попадайся в лучи, крути вентили течений.' },
   desc: 'Темно и сыро. Прячься от лучей дронов, крути вентили, ищи кольца. Где-то живёт крокодил…',
   unit: 3e-2, world: { w: 6000, h: 4500 }, start: { x: 250, y: 250, r: 10 }, goal: { r: 160 },
   growK: 0.12, medals: [360, 560], seed: 606, dark: 0.93, lightR: 7, mmColor: 'rgba(40,45,55,0.95)', burp: 'Крокодил был как резиновый!',

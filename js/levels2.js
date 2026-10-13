@@ -8,6 +8,7 @@
 // ============================================================
 LEVELS.push({
   id: 'base', name: 'Военная база', chapter: 'Глава 2 · Город', host: 'dima', music: 'base', bg: 'base',
+  mech: { icon: '💣', name: 'САПЁР', text: 'Мины невидимы — их показывает радар. В конце — танк Т-ДИМОН.' },
   desc: 'Прожекторы, мины, мини-танки. В конце — Т-ДИМОН. Съешь его топливные баки!',
   unit: 0.1, world: { w: 7000, h: 5000 }, start: { x: 450, y: 4550, r: 10 }, goal: { r: 200 },
   growK: 0.13, medals: [360, 560], seed: 707, mmColor: 'rgba(160,140,90,0.9)', burp: 'Танк — это просто большая консерва!',
@@ -34,10 +35,12 @@ LEVELS.push({
     // минное поле
     const mineArea = { x: 2600, y: 100, w: 1850, h: 4800 };
     b.clear(2550, 2000, 1950, 500); b.clear(3300, 100, 300, 4800);
-    b.scatter('mine', 70, 14, 20, mineArea, { big: true, clearMin: 0, opts: { pts: 5 } });
+    b.scatter('mine', 90, 14, 20, mineArea, { big: true, clearMin: 0, opts: { pts: 5, hidden: true } });
+    b.scatter('mine', 25, 12, 18, { x: 300, y: 300, w: 2000, h: 3000 }, { big: true, opts: { pts: 5, hidden: true } });
+    b.scatter('mine', 20, 16, 22, { x: 4700, y: 200, w: 2200, h: 4600 }, { big: true, avoid: (x, y) => U.dist(x, y, 5800, 2500) < 500, opts: { pts: 5, hidden: true } });
     b.floor({ k: 'rect', x: 2550, y: 2000, w: 1950, h: 500, c: 'rgba(120,100,60,0.35)', mm: 'rgba(120,100,60,0.6)' });
     b.floor({ k: 'rect', x: 3300, y: 100, w: 300, h: 4800, c: 'rgba(120,100,60,0.35)', mm: 'rgba(120,100,60,0.6)' });
-    b.sign(2600, 2250, 160, 'Минное поле! Безопасные тропы — светлые полосы. Мины взрываются, пока ты меньше их.');
+    b.sign(2600, 2250, 160, 'Минное поле! Мины НЕВИДИМЫ — их показывает только радар вокруг Никиты. Безопасные тропы — светлые полосы.');
     // ---- предметы ----
     const Z1 = { x: 50, y: 50, w: 2400, h: 4900 };
     const nur = { cx: 450, cy: 4550, r0: 30, r1: 700 };
@@ -63,8 +66,29 @@ LEVELS.push({
     for (const it of L.items) if (it.beh === 'turret') it.data.off = false;
     if (!L.data.al) { L.data.al = 1; L.radio('dima', 'Объект в луче! Турели — огонь!', 'angry'); }
   },
-  init(L) { L.radio('dima', 'Добро пожаловать на базу, Никита. Прожекторы, мины, турели. И мой малыш Т-Димон.', 'smug'); L.tip('lights', 'Попал в луч прожектора — включатся турели!', '#fff3bf'); },
+  init(L) {
+    L.radio('dima', 'Добро пожаловать на базу, Никита. Мины я закопал — ты их не увидишь. И мой малыш Т-Димон ждёт.', 'smug');
+    L.toast('САПЁР: мины невидимы! Радар вокруг Никиты пищит и подсвечивает их', '#ffe066', 5);
+  },
+  drawOver(ctx, L, v, z, t) {
+    const P = L.P, R = P.r * 3 + 140;
+    ctx.save();
+    ctx.globalAlpha = 0.35; ctx.setLineDash([R * 0.08, R * 0.06]); ctx.lineDashOffset = -t * R * 0.2;
+    circ(ctx, P.x, P.y, R, null, '#69db7c', Math.max(2 / z, R * 0.015));
+    ctx.setLineDash([]); ctx.globalAlpha = 0.18;
+    const a = t * 3; ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.arc(P.x, P.y, R, a, a + 0.6); ctx.closePath(); ctx.fillStyle = '#69db7c'; ctx.fill();
+    ctx.restore();
+  },
   update(L, dt) {
+    const P = L.P, R = P.r * 3 + 140;
+    let near = 1e9;
+    for (const it of L.items) if (it.t === 'mine' && !it.dead) {
+      const d = U.dist(it.x, it.y, P.x, P.y) - it.r;
+      if (!it.revealed && d < R) { it.revealed = true; it.hidden = false; it.flash = 0.6; }
+      if (!L.canEat(it)) near = Math.min(near, d);
+    }
+    L.data.beep = (L.data.beep || 0) - dt;
+    if (near < R * 1.6 && L.data.beep <= 0) { L.data.beep = U.clamp(near / R, 0.12, 1.2); Sound.tone(near < R * 0.6 ? 1400 : 900, 0.05, 'square', 0.05); }
     if (L.flags.alarm > 0) { L.flags.alarm -= dt; if (L.flags.alarm <= 0) for (const it of L.items) if (it.beh === 'turret') it.data.off = true; }
     for (const it of L.items) if (it.t === 'mine' && !it.dead && !L.canEat(it) && U.dist(it.x, it.y, L.P.x, L.P.y) < it.r + L.P.r) {
       it.dead = true; Sound.play('boom'); L.burst(it.x, it.y, 20, '#ff922b', it.r * 6, it.r * 0.5); L.cam.shake = 12;
@@ -78,8 +102,9 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'ocean', name: 'Океан', chapter: 'Глава 3 · Весь мир', host: 'egor', music: 'ocean', bg: 'ocean',
+  mech: { icon: '🌊', name: 'ПЛАВАНИЕ', text: 'Инерция в воде: разгон и торможение медленные. Течения и водовороты.' },
   desc: 'Огромный океан: рифы, акулы, корабли и острова. Егор охотится на подлодке.',
-  unit: 0.5, world: { w: 12000, h: 8000 }, start: { x: 1500, y: 6800, r: 10 }, goal: { r: 400 },
+  unit: 0.5, world: { w: 12000, h: 8000 }, start: { x: 1500, y: 6800, r: 10 }, goal: { r: 400 }, swim: 2.4,
   growK: 0.14, medals: [420, 660], seed: 808, mmColor: 'rgba(25,113,194,0.9)', burp: 'Солёненько!',
   milestones: [
     { r: 30, who: 'egor', text: 'Никита вышел в открытое море. Погружаюсь!', expr: 'determined' },
@@ -133,7 +158,10 @@ LEVELS.push({
       lines: ['Торпеда с антиаппетитином пошла!', 'Никита, всплывай!', 'Перископ поднять!', 'Это для науки!'], scared: ['Срочное погружение!', 'Полный назад!'] });
     b.pw('speed', 2300, 6300, 16); b.pw('magnet', 6000, 5000, 40); b.pw('shield', 7600, 3000, 60); b.pw('grow', 10500, 1800, 160);
   },
-  init(L) { L.radio('egor', 'Никита уплыл в океан. Я на подлодке. Торпеды заряжены антиаппетитином!', 'determined'); L.tip('vortex', 'Водовороты переносят на другой конец океана!', '#74c0fc'); },
+  init(L) {
+    L.radio('egor', 'Никита уплыл в океан. Я на подлодке. Торпеды заряжены антиаппетитином!', 'determined');
+    L.toast('ПЛАВАНИЕ: в воде Никита разгоняется и тормозит медленно. Течения сносят, водовороты переносят!', '#74c0fc', 5.5);
+  },
 });
 
 // ============================================================
@@ -141,6 +169,7 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'volcano', name: 'Остров-вулкан', chapter: 'Глава 3 · Весь мир', host: 'pylypyuk', music: 'volcano', bg: 'volcano',
+  mech: { icon: '🌋', name: 'ИЗВЕРЖЕНИЕ', text: 'Лава наступает от кратера! Гонка со временем — расти быстрее лавы.' },
   desc: 'Остров разрезан реками лавы. Замораживай их крио-кнопками Пилипюка и съешь вулкан!',
   unit: 2, world: { w: 9000, h: 9000 }, start: { x: 4500, y: 8250, r: 10 }, goal: { r: 420 },
   growK: 0.1, medals: [360, 560], seed: 909, mmColor: 'rgba(25,113,194,0.9)', burp: 'Горячо-горячо! Но вкусно!',
@@ -211,9 +240,37 @@ LEVELS.push({
     for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.4, d = 2600; b.item('turret', C + Math.cos(a) * d, C + Math.sin(a) * d, 44, { beh: 'turret', draw: Draws.turret, rate: 2.6, range: 1300, shot: { k: 'freeze', eff: 'freeze', hz: 0.03, col: '#a5d8ff' }, col: '#1864ab', col2: '#74c0fc', eye: '#e7f5ff', mm: '#74c0fc' }); }
     b.pw('speed', 4000, 7600, 16); b.pw('shield', 1400, 4800, 40); b.pw('magnet', 7600, 4200, 40); b.pw('grow', 4500, 900, 120); b.pw('shield', 4500, 2300, 150);
   },
-  init(L) { L.radio('pylypyuk', 'Остров-вулкан! Мои криогенераторы и пушки готовы. Тут ты и замёрзнешь, стажёр!', 'smug'); L.data.freeze = {}; },
+  init(L) {
+    L.radio('pylypyuk', 'Остров-вулкан! И он… просыпается. Лава уже ползёт от кратера! Мои крио-кнопки её ненадолго остановят.', 'shock');
+    L.data.freeze = {}; L.data.lavaR = 700; L.data.lavaHold = 0;
+    L.toast('ИЗВЕРЖЕНИЕ: лава наступает от центра! Расти быстрее — большому Никите лава не страшна', '#ff922b', 5.5);
+  },
+  drawUnder(ctx, L, v, z, t) {
+    const R = L.data.lavaR, C = 4500;
+    if (circleView(v, C, C, R) === 'outside') return;
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i <= 90; i++) { const a = i / 90 * TAU; const rr = R * (1 + 0.012 * Math.sin(a * 13 + t * 2) + 0.008 * Math.sin(a * 7 - t * 3)); i ? ctx.lineTo(C + Math.cos(a) * rr, C + Math.sin(a) * rr) : ctx.moveTo(C + Math.cos(a) * rr, C + Math.sin(a) * rr); }
+    ctx.closePath();
+    const g = ctx.createRadialGradient(C, C, R * 0.2, C, C, R); g.addColorStop(0, '#ffd43b'); g.addColorStop(0.7, '#ff6b00'); g.addColorStop(1, '#c92a2a');
+    ctx.fillStyle = L.data.lavaHold > 0 ? '#7ab8e8' : g; ctx.globalAlpha = 0.92; ctx.fill();
+    ctx.globalAlpha = 1; ctx.lineWidth = Math.max(4 / z, 22); ctx.strokeStyle = L.data.lavaHold > 0 ? '#e7f5ff' : '#ffe066'; ctx.stroke();
+    ctx.restore();
+  },
+  mmOverlay(L, ctx, mx, my, k) { ctx.save(); ctx.beginPath(); ctx.arc(mx + 4500 * k, my + 4500 * k, L.data.lavaR * k, 0, TAU); ctx.fillStyle = 'rgba(255,107,0,0.55)'; ctx.fill(); ctx.restore(); },
   update(L, dt) {
     const P = L.P, D = L.data;
+    // наступающая лава
+    D.lavaHold -= dt;
+    if (D.lavaHold <= 0) D.lavaR = Math.min(4300, D.lavaR + dt * 6.5);
+    const dc = U.dist(P.x, P.y, 4500, 4500);
+    if (dc < D.lavaR - P.r * 0.3 && P.r < 250 && D.lavaHold <= 0) { L.hurt(0.12, 4500, 4500, 'lava'); const f = P.r * BASE_SPD * 0.6; L.pushX += (P.x - 4500) / (dc || 1) * f; L.pushY += (P.y - 4500) / (dc || 1) * f; }
+    let burned = 0;
+    for (const it of L.items) {
+      if (burned > 6 || it.dead || it.tag === 'volcano' || it.r > 220) continue;
+      if (U.dist(it.x, it.y, 4500, 4500) < D.lavaR - it.r) { it.dead = true; burned++; L.part('smoke', it.x, it.y, 0, -it.r, it.r * 0.8, 'rgba(60,40,30,0.5)', 1); }
+    }
+    if (!D.lavaWarn && D.lavaR > dc - 900 && P.r < 250) { D.lavaWarn = 1; L.radio('pylypyuk', 'Лава совсем близко! Жми синие крио-кнопки — они остановят её на 15 секунд!', 'shock'); }
     for (const k in D.freeze) { D.freeze[k] -= dt; if (D.freeze[k] <= 0) { delete D.freeze[k]; for (const z of L.zones) if (z.river === +k) z.frozen = false; L.toast('Лава снова течёт!', '#ff922b', 1.5); } }
     // извержения
     if (U.dist(P.x, P.y, 4500, 4500) < 3600) {
@@ -238,7 +295,8 @@ let L_RIVERS = [];
 function freezeRiver(L, k) {
   for (const z of L.zones) if (z.river === k) z.frozen = true;
   L.data.freeze[k] = 15; Sound.play('freeze');
-  L.toast('Лава заморожена на 15 секунд! Беги!', '#74c0fc', 2);
+  L.data.lavaHold = Math.max(L.data.lavaHold || 0, 15);
+  L.toast('Река и наступающая лава заморожены на 15 секунд! Беги!', '#74c0fc', 2.2);
   L.burst(L.P.x, L.P.y, 20, '#a5d8ff', L.P.r * 4, L.P.r * 0.1);
 }
 
@@ -263,6 +321,7 @@ const DESERTS = [[7600, 3500, 9400, 3500, 9300, 4300, 7700, 4300], [13100, 6100,
 const onLand = (x, y) => Object.values(CONT).some(p => inPoly(x, y, p));
 LEVELS.push({
   id: 'earth', name: 'Планета Земля', chapter: 'Глава 3 · Весь мир', host: 'kirill', music: 'earth', bg: 'earth',
+  mech: { icon: '🚀', name: 'ОБСТРЕЛ', text: 'Ракеты Кирилла самонаводятся! Уворачивайся, пока не перерастёшь их.' },
   desc: 'Никита ростом с горы. Ешь города и континенты! Кирилл запускает ракеты с бантиками.',
   unit: 3000, world: { w: 16000, h: 9000 }, start: { x: 8700, y: 2150, r: 10 }, goal: { r: 500 },
   growK: 0.15, medals: [240, 400], seed: 1010, mmColor: 'rgba(25,113,194,0.9)', camFrac: 0.05, burp: 'Евразия — это как шаурма, только больше!',
@@ -338,8 +397,9 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'space', name: 'Солнечная система', chapter: 'Глава 4 · Космос', host: 'danya', music: 'space', bg: 'space',
+  mech: { icon: '🪐', name: 'ГРАВИТАЦИЯ', text: 'Невесомость: планеты притягивают и разгоняют. Солнце обжигает.' },
   desc: 'Планеты кружатся вокруг Солнца. Спутники Дани стреляют лазерами. Съешь Солнце!',
-  unit: 1e6, world: { w: 18000, h: 18000, shape: 'circle' }, start: { x: 10850, y: 9000, r: 6 }, goal: { r: 330 },
+  unit: 1e6, world: { w: 18000, h: 18000, shape: 'circle' }, start: { x: 10850, y: 9000, r: 6 }, goal: { r: 330 }, swim: 3.2,
   growK: 0.16, medals: [420, 660], seed: 1111, mmColor: 'rgba(15,12,40,0.95)', camFrac: 0.05, burp: 'Солнце — острое!',
   objectives: [{ type: 'count', tag: 'sun', target: 1, text: 'Съешь Солнце' }],
   milestones: [
@@ -381,13 +441,16 @@ LEVELS.push({
     for (const [parent, R, n, rr] of [['earth', 140, 3, 10], ['mars', 120, 3, 12], ['jupiter', 330, 4, 22], ['saturn', 300, 3, 26]]) for (let i = 0; i < n; i++) b.item('lasersat', 0, 0, rr, { draw: Draws.lasersat, beh: 'orbitTurret', orbit: { parent, R, w: 0.12, a: i / n * TAU }, rate: 2.2, range: 1500, shot: { k: 'bolt', hz: 0.06, col: '#ff3b3b' }, always: true, mm: '#ff3b3b' });
     b.pw('speed', 10600, 9300, 4); b.pw('shield', 12600, 8000, 16); b.pw('magnet', 6000, 6000, 40); b.pw('grow', 4500, 12500, 80); b.pw('grow', 14000, 4000, 120); b.pw('shield', 9000, 7900, 150);
   },
-  init(L) { L.radio('danya', 'Мы на станции «Ковчег». Никита в космосе. Включаю сеть лазерных спутников!', 'determined'); L.tip('grav', 'Большие планеты притягивают. Солнце обжигает, пока ты меньше его!', '#ffd43b'); },
+  init(L) {
+    L.radio('danya', 'Мы на станции «Ковчег». Никита в космосе. Включаю сеть лазерных спутников!', 'determined');
+    L.toast('ГРАВИТАЦИЯ: невесомость и притяжение планет! Пролетай рядом с планетой, чтобы разогнаться', '#ffd43b', 5.5);
+  },
   update(L, dt) {
     const P = L.P;
     for (const it of L.items) {
       if (it.dead || it.tag !== 'planet' || L.canEat(it)) continue;
-      const d = U.dist(it.x, it.y, P.x, P.y), R = it.r * 6;
-      if (d < R && d > it.r) { const f = (1 - d / R) * P.r * BASE_SPD * 0.35; L.pushX += (it.x - P.x) / d * f; L.pushY += (it.y - P.y) / d * f; }
+      const d = U.dist(it.x, it.y, P.x, P.y), R = it.r * 10;
+      if (d < R && d > it.r) { const f = Math.pow(1 - d / R, 1.5) * P.r * BASE_SPD * 0.75; P.vx += (it.x - P.x) / d * f * dt * 2.2; P.vy += (it.y - P.y) / d * f * dt * 2.2; }
     }
     const sun = L.byId.sun;
     if (sun && !sun.dead && !L.canEat(sun) && U.dist(sun.x, sun.y, P.x, P.y) < sun.r * 1.7 + P.r) L.hurt(0.06, sun.x, sun.y, 'sun');
@@ -399,6 +462,7 @@ LEVELS.push({
 // ============================================================
 LEVELS.push({
   id: 'final', name: 'Мозг-Станция', chapter: 'Глава 4 · Космос', host: 'molgelevich', music: 'boss', bg: 'station',
+  mech: { icon: '🧠', name: 'БОСС', text: 'Три фазы битвы с профессором Молгелевичем.' },
   desc: 'ФИНАЛ. Профессор Молгелевич и его Мега-Мех. Кирилл и Наташа — на твоей стороне!',
   unit: 1e7, world: { w: 6400, h: 6400, shape: 'circle' }, start: { x: 3200, y: 5700, r: 40 }, goal: { r: 120 },
   growK: 0.2, medals: [240, 400], seed: 1212, mmColor: 'rgba(45,42,69,0.95)', winText: 'МОЛГЕЛЕВИЧ ПОВЕРЖЕН!', burp: 'Мозги — полезная еда!',

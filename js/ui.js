@@ -129,16 +129,17 @@ const UI = {
       HUD.text(ctx, String(i + 1), -R * 0.75, -R * 0.6, R * 0.38, '#ffd43b', 'center');
       ctx.restore();
       HUD.text(ctx, L.name, x, y + R + 18 * sc, Math.max(11, 15 * sc), locked ? '#777' : '#fff', 'center', OL, 800);
-      if (best) HUD.text(ctx, '⏱ ' + U.formatTime(best.time) + '  ★ ' + best.score.toLocaleString('ru-RU'), x, y + R + 36 * sc, Math.max(10, 12 * sc), '#d0bfff', 'center', OL, 700);
+      if (L.mech) HUD.text(ctx, L.mech.icon + ' ' + L.mech.name, x, y + R + 35 * sc, Math.max(10, 12 * sc), locked ? '#666' : '#ffd43b', 'center', OL, 800);
+      if (best) HUD.text(ctx, '⏱ ' + U.formatTime(best.time) + '  ★ ' + best.score.toLocaleString('ru-RU'), x, y + R + 51 * sc, Math.max(10, 12 * sc), '#d0bfff', 'center', OL, 700);
       this.buttons.push({ id: 'lv' + i, x: x - R, y: y - R, w: R * 2, h: R * 2, disabled: locked, cb: () => Game.startLevel(i) });
       if (hov) {
         ctx.save();
         const tw = Math.min(380 * sc, sw * 0.8);
         const tx = U.clamp(x - tw / 2, 10, sw - tw - 10), ty = y - R - 90 * sc < 70 * sc ? y + R + 50 * sc : y - R - 90 * sc;
-        rect(ctx, tx, ty, tw, 70 * sc, 12, 'rgba(20,18,40,0.92)', '#ffd43b', 2);
-        HUD.text(ctx, L.chapter, tx + 12, ty + 22 * sc, 12 * sc, '#ffd43b', 'left', null, 800);
+        rect(ctx, tx, ty, tw, 88 * sc, 12, 'rgba(20,18,40,0.94)', '#ffd43b', 2);
+        HUD.text(ctx, L.chapter + (L.mech ? '   ·   ' + L.mech.icon + ' ' + L.mech.name : ''), tx + 12, ty + 22 * sc, 12 * sc, '#ffd43b', 'left', null, 800);
         ctx.font = `700 ${12 * sc}px ${FONT}`;
-        U.wrapText(ctx, L.desc, tw - 24).slice(0, 2).forEach((ln, j) => HUD.text(ctx, ln, tx + 12, ty + (42 + j * 16) * sc, 12 * sc, '#fff', 'left', null, 700));
+        U.wrapText(ctx, L.mech ? L.mech.text : L.desc, tw - 24).slice(0, 3).forEach((ln, j) => HUD.text(ctx, ln, tx + 12, ty + (42 + j * 16) * sc, 12 * sc, '#fff', 'left', null, 700));
         ctx.restore();
       }
     }
@@ -191,7 +192,8 @@ const UI = {
       ['⚡', 'ПРОБЕЛ, Shift или правая кнопка мыши — РЫВОК (двойной тап на телефоне). Разбивает треснувшие стены и бьёт боссов.'],
       ['😋', 'Ешь всё, что МЕНЬШЕ тебя. Чем больше съел — тем больше стал. Большие предметы сначала не по зубам.'],
       ['💥', 'Шипы, лазеры, лава, сетки и укусы уменьшают Никиту. Ранят на минимальном размере — растёт шкала поимки!'],
-      ['🗝', 'Головоломки: ключ-карты и двери, лужи краски и цветные барьеры, кнопки, плиты и ящики, вентили, код «Саймон», крио-кнопки, прожекторы.'],
+      ['🗺', 'У каждой карты своя механика: классика, краски, лабиринт, паркур, светофоры, стелс, сапёр, плавание, извержение, обстрел, гравитация и босс.'],
+      ['🦘', 'Паркур: вокруг пропасть — ПРОБЕЛ = прыжок. Лабиринт: карта открывается там, где ты был, ключ-карты лежат в тупиках.'],
       ['🌶', 'Бонусы: перец — скорость, магнит — еда летит к тебе, щит — защита, гриб — рост, пирожок от Наташи.'],
       ['🏅', 'Медали за время: золото, серебро, бронза. Комбо за быстрое поедание дают больше очков.'],
       ['⌨', 'Esc / P — пауза. M — мини-карта. Между уровнями — комиксы (клик — дальше, Esc — пропустить).'],
@@ -219,6 +221,7 @@ const UI = {
     if (L) {
       const objs = L.objectives.map(o => (o.done ? '✔ ' : '• ') + o.text).join('   ');
       HUD.text(ctx, L.def.name + ' — ' + objs, sw / 2, sh * 0.25 + 40 * sc, Math.max(12, 15 * sc), '#fff', 'center', OL, 700);
+      if (L.def.mech) HUD.text(ctx, 'Механика: ' + L.def.mech.icon + ' ' + L.def.mech.name + ' — ' + L.def.mech.text, sw / 2, sh * 0.25 + 64 * sc, Math.max(11, 13 * sc), '#ffd43b', 'center', OL, 700);
     }
     const bw = Math.min(300 * sc, sw * 0.7), bh = Math.max(44, 54 * sc);
     let y = sh * 0.38;

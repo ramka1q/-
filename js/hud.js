@@ -115,7 +115,7 @@ const HUD = {
     circ(ctx, px, py, 21 * sc, 'rgba(20,18,40,0.7)', null);
     this.text(ctx, '⚡', px, py + 7 * sc, 20 * sc, dk >= 1 ? '#ffd43b' : '#666', 'center', null);
     ctx.beginPath(); ctx.arc(px, py, 22 * sc, -Math.PI / 2, -Math.PI / 2 + TAU * dk); ctx.lineWidth = 4 * sc; ctx.strokeStyle = dk >= 1 ? '#69db7c' : '#868e96'; ctx.stroke();
-    if (sw > 700) this.text(ctx, 'ПРОБЕЛ', px, py + 36 * sc, 9 * sc, '#aaa', 'center', null, 700);
+    if (sw > 700) this.text(ctx, L.def.pit ? 'ПРЫЖОК' : 'ПРОБЕЛ', px, py + 36 * sc, 9 * sc, L.def.pit ? '#ffd43b' : '#aaa', 'center', null, 700);
     // --- рация ---
     this.drawRadio(ctx, L, sw, sh, t, sc);
     // --- тосты ---
@@ -148,6 +148,7 @@ const HUD = {
       ctx.save(); ctx.globalAlpha = a; ctx.translate(sw / 2, sh * 0.3); ctx.scale(k * Math.min(1, sw / (560 * sc)), k * Math.min(1, sw / (560 * sc)));
       this.text(ctx, L.def.chapter, 0, -40 * sc, 16 * sc, '#d0bfff', 'center', OL, 800);
       this.text(ctx, L.def.name.toUpperCase(), 0, 8 * sc, 48 * sc, '#fff', 'center');
+      if (L.def.mech) { const mk = U.ease.outBack(U.clamp(L.time * 2 - 0.5, 0, 1)); ctx.save(); ctx.translate(0, -78 * sc); ctx.scale(mk, mk); ctx.font = `900 ${18 * sc}px ${FONT}`; const mw = ctx.measureText('МЕХАНИКА: ' + L.def.mech.name).width + 70 * sc; rect(ctx, -mw / 2, -20 * sc, mw, 32 * sc, 16 * sc, '#ffd43b', OL, 3); this.text(ctx, L.def.mech.icon + ' МЕХАНИКА: ' + L.def.mech.name, 0, 3 * sc, 18 * sc, OL, 'center', null); ctx.restore(); }
       ctx.font = `700 ${15 * sc}px ${FONT}`;
       U.wrapText(ctx, L.def.desc, Math.min(sw * 0.8, 620 * sc)).forEach((ln, i) => this.text(ctx, ln, 0, (40 + i * 20) * sc, 15 * sc, '#ffe066', 'center', OL, 700));
       ctx.restore();
@@ -220,6 +221,12 @@ const HUD = {
       if (L.def.world.shape === 'circle') { c.beginPath(); c.arc(mw / 2, mh / 2, mw / 2, 0, TAU); c.fill(); } else c.fillRect(0, 0, mw, mh);
       for (const d of L.floor) if (d.mm) { c.fillStyle = d.mm; if (d.k === 'rect') c.fillRect(d.x * k, d.y * k, Math.max(1, d.w * k), Math.max(1, d.h * k)); else if (d.k === 'circ') { c.beginPath(); c.arc(d.x * k, d.y * k, d.r * k, 0, TAU); c.fill(); } else if (d.k === 'poly') { c.beginPath(); for (let i = 0; i < d.pts.length; i += 2) c.lineTo(d.pts[i] * k, d.pts[i + 1] * k); c.closePath(); c.fill(); } else if (d.k === 'path') { c.beginPath(); for (let i = 0; i < d.pts.length; i += 2) c.lineTo(d.pts[i] * k, d.pts[i + 1] * k); c.lineWidth = Math.max(1, d.w * k); c.strokeStyle = d.mm; c.stroke(); } }
       for (const z of L.zones) { const col = { lava: '#ff6b00', paint: PAINT[z.color], current: 'rgba(116,192,252,0.6)', conveyor: '#495057', ice: '#d0ebff', slow: '#94d82d', water: '#1971c2' }[z.k]; if (!col) continue; c.fillStyle = col; if (z.shape === 'circ') { c.beginPath(); c.arc(z.x * k, z.y * k, Math.max(1.5, z.r * k), 0, TAU); c.fill(); } else c.fillRect(z.x * k, z.y * k, Math.max(1, z.w * k), Math.max(1, z.h * k)); }
+      for (const p of L.plats) {
+        c.fillStyle = p.kind === 'crumble' ? '#a0522d' : p.kind === 'conveyor' ? '#495057' : p.path ? 'rgba(255,212,59,0.35)' : '#adb5bd';
+        if (p.shape === 'circ') { c.beginPath(); c.arc(p.x * k, p.y * k, Math.max(2, p.r * k), 0, TAU); c.fillStyle = '#ffd43b'; c.fill(); }
+        else if (p.path) { const x0 = Math.min(p.path[0][0], p.path[1][0]), y0 = Math.min(p.path[0][1], p.path[1][1]); c.fillRect(x0 * k, y0 * k, (Math.abs(p.path[1][0] - p.path[0][0]) + p.w) * k, (Math.abs(p.path[1][1] - p.path[0][1]) + p.h) * k); }
+        else c.fillRect(p.x * k, p.y * k, Math.max(1, p.w * k), Math.max(1, p.h * k));
+      }
       for (const w of L.walls) {
         if (w.dead) continue;
         if (w.door && w.door.open >= 1) continue;
@@ -241,6 +248,8 @@ const HUD = {
       circ(ctx, mx + it.x * k, my + it.y * k, Math.max(2.5 * sc, it.r * k), col, OL, 1);
     }
     for (const tr of L.triggers) { if (tr.k === 'plate' || tr.k === 'button' || tr.k === 'hold' || tr.k === 'simon') circ(ctx, mx + tr.x * k, my + tr.y * k, 2.5 * sc, tr.active || tr.done || tr.state === 'done' ? '#69db7c' : '#ffd43b', null); if (tr.k === 'portal') circ(ctx, mx + tr.x * k, my + tr.y * k, 3 * sc, '#b197fc', null); }
+    for (const tr of L.triggers) if (tr.k === 'checkpoint') circ(ctx, mx + tr.x * k, my + tr.y * k, 2.5 * sc, tr.active ? '#69db7c' : '#ff6b6b', null);
+    if (L.def.mmOverlay) L.def.mmOverlay(L, ctx, mx, my, k, sc);
     // область обзора
     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
     const v = L.view; if (v) ctx.strokeRect(mx + Math.max(0, v.x) * k, my + Math.max(0, v.y) * k, Math.min(v.w, L.W) * k, Math.min(v.h, L.H) * k);
