@@ -10,12 +10,16 @@ def axes(ax, xr, yr, title):
     ax.set_yticks(np.arange(np.ceil(yr[0]), yr[1] + 1e-9, 1))
     ax.grid(True, color="#b9d3ee", lw=0.7)
     for s in ax.spines.values(): s.set_visible(False)
-    ax.tick_params(length=0, labelsize=7, labelcolor="#555")
+    ax.tick_params(length=0, labelbottom=False, labelleft=False)
+    for i in range(int(np.ceil(xr[0])), int(np.floor(xr[1] - 0.5)) + 1):
+        if i: ax.text(i, -0.15, str(i).replace("-", "−"), ha="center", va="top", fontsize=8, color="#333")
+    for j in range(int(np.ceil(yr[0])), int(np.floor(yr[1] - 0.5)) + 1):
+        if j: ax.text(-0.12, j, str(j).replace("-", "−"), ha="right", va="center", fontsize=8, color="#333")
     ax.annotate("", xy=(xr[1], 0), xytext=(xr[0], 0), arrowprops=dict(arrowstyle="->", lw=1.2))
     ax.annotate("", xy=(0, yr[1]), xytext=(0, yr[0]), arrowprops=dict(arrowstyle="->", lw=1.2))
     ax.text(xr[1] - 0.3, -0.7, "x", fontsize=12, style="italic")
     ax.text(0.25, yr[1] - 0.6, "y", fontsize=12, style="italic")
-    ax.text(-0.5, -0.7, "0", fontsize=10)
+    ax.text(-0.12, -0.15, "0", ha="right", va="top", fontsize=9)
     ax.set_title(title, fontsize=12, loc="left")
 
 def pts(ax, P):
